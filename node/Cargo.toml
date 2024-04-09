@@ -1,5 +1,5 @@
 [package]
-name = "airo-node"
+name = "airo"
 description = "Implementation of a aimosphere network node"
 version = { workspace = true }
 authors = { workspace = true }
