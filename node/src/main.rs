@@ -1,4 +1,4 @@
-//! Substrate Node Template CLI library.
+//! Airo CLI.
 #![warn(missing_docs)]
 
 mod benchmarking;
