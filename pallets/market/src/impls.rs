@@ -27,13 +27,13 @@ impl<T: Config> IncrementalStorageValue for CurrentOrderId<T> {
 impl<T: Config> Pallet<T> {
     pub fn insert_order(order: OrderDetails<T>) -> T::OrderId {
         let order_id = CurrentOrderId::<T>::next();
-        ConsumerOrders::<T>::insert(&order.consumer, order_id, order_id);
+        ConsumerOrders::<T>::insert(&order.consumer, order_id, ());
         Orders::<T>::insert(order_id, order);
         order_id
     }
 
     pub fn insert_bid(order_id: T::OrderId, provider: &Provider<T>, bid: Bid<T>) {
-        ProviderOrders::<T>::insert(provider, order_id, order_id);
+        ProviderOrders::<T>::insert(provider, order_id, ());
         OrderBids::<T>::insert(order_id, provider, bid);
     }
 

@@ -80,13 +80,13 @@ pub mod pallet {
     /// Orders created by a consumer.
     #[pallet::storage]
     pub type ConsumerOrders<T: Config> =
-        StorageDoubleMap<_, Twox64Concat, Consumer<T>, Blake2_128Concat, T::OrderId, T::OrderId>;
+        StorageDoubleMap<_, Twox64Concat, Consumer<T>, Blake2_128Concat, T::OrderId, ()>;
 
     // TODO. Remove this storage in favor of Backend.
     /// Orders created by a provider.
     #[pallet::storage]
     pub type ProviderOrders<T: Config> =
-        StorageDoubleMap<_, Twox64Concat, Provider<T>, Blake2_128Concat, T::OrderId, T::OrderId>;
+        StorageDoubleMap<_, Twox64Concat, Provider<T>, Blake2_128Concat, T::OrderId, ()>;
 
     /// Bids currently existing in the network.
     #[pallet::storage]

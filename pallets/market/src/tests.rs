@@ -30,7 +30,7 @@ fn can_order() {
         let expected_model_id = BoundedVec::try_from(model_id.as_bytes().to_vec()).unwrap();
         let expected_order = OrderDetails::new(consumer, expected_model_id.clone(), requests_total);
         assert_eq!(Orders::<Test>::get(order_id), Some(expected_order));
-        assert_eq!(ConsumerOrders::<Test>::get(consumer, order_id), Some(order_id));
+        assert!(ConsumerOrders::<Test>::contains_key(consumer, order_id));
         System::assert_last_event(
             Event::OrderCreated { order_id, model_id: expected_model_id }.into(),
         );
@@ -79,7 +79,7 @@ fn can_bid() {
 
         let expected_bid = Bid::new(provider, price);
         assert_eq!(OrderBids::<Test>::get(order_id, provider), Some(expected_bid));
-        assert_eq!(ProviderOrders::<Test>::get(provider, order_id), Some(order_id));
+        assert!(ProviderOrders::<Test>::contains_key(provider, order_id));
         System::assert_last_event(
             Event::BidCreated { order_id, provider, price_per_request: price }.into(),
         );
