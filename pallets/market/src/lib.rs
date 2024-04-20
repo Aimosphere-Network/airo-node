@@ -12,6 +12,7 @@ use sp_runtime::traits::{One, Zero};
 
 pub use pallet::*;
 use rules::*;
+use storage::*;
 use types::*;
 pub use weights::*;
 
@@ -31,8 +32,8 @@ mod tests;
 #[cfg(feature = "runtime-benchmarks")]
 pub mod benchmarking;
 
-mod impls;
 mod rules;
+mod storage;
 mod types;
 pub mod weights;
 
@@ -158,7 +159,7 @@ pub mod pallet {
 
             ensure!(That::<T>::order_valid(&order), Error::<T>::OrderInvalid);
 
-            let order_id = Self::insert_order(order);
+            let order_id = Storage::<T>::insert_order(order);
 
             Self::deposit_event(Event::OrderCreated { order_id, model_id });
             Ok(())
@@ -178,7 +179,7 @@ pub mod pallet {
             ensure!(!That::<T>::bid_exists(order_id, &provider), Error::<T>::BidAlreadyExists);
 
             let bid = Bid::new(provider.clone(), price_per_request);
-            Self::insert_bid(order_id, &provider, bid);
+            Storage::<T>::insert_bid(order_id, &provider, bid);
 
             Self::deposit_event(Event::BidCreated { order_id, provider, price_per_request });
             Ok(())
@@ -200,7 +201,7 @@ pub mod pallet {
 
             // TODO create execution flow
 
-            Self::remove_order(order_id);
+            Storage::<T>::remove_order(order_id);
 
             Self::deposit_event(Event::BidAccepted { order_id, provider });
             Ok(())

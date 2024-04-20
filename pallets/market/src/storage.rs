@@ -5,7 +5,6 @@ use scale_codec::FullCodec;
 
 use crate::*;
 
-// TODO. Move to common.
 pub trait IncrementalStorageValue
 where
     Self: StorageValue<Self::Id, Query = Self::Id>,
@@ -24,7 +23,9 @@ impl<T: Config> IncrementalStorageValue for CurrentOrderId<T> {
     type Id = T::OrderId;
 }
 
-impl<T: Config> Pallet<T> {
+pub struct Storage<T>(PhantomData<T>);
+
+impl<T: Config> Storage<T> {
     pub fn insert_order(order: OrderDetails<T>) -> T::OrderId {
         let order_id = CurrentOrderId::<T>::next();
         ConsumerOrders::<T>::insert(&order.consumer, order_id, ());
