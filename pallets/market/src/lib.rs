@@ -10,8 +10,8 @@ use frame_support::{
 use frame_system::pallet_prelude::*;
 use sp_runtime::traits::{One, Zero};
 
+use airo_primitives::{agreement::AgreementManagement, RequestsUsize};
 pub use pallet::*;
-use rules::*;
 use storage::*;
 use types::*;
 pub use weights::*;
@@ -32,7 +32,6 @@ mod tests;
 #[cfg(feature = "runtime-benchmarks")]
 pub mod benchmarking;
 
-mod rules;
 mod storage;
 mod types;
 pub mod weights;
@@ -65,8 +64,16 @@ pub mod pallet {
         /// Order ID type.
         type OrderId: Member + Parameter + MaxEncodedLen + One + Zero + Default + Copy;
 
+        /// Used to operate on agreements.
+        type AgreementManagement: AgreementManagement<
+            AccountId = Self::AccountId,
+            OrderId = Self::OrderId,
+            ModelId = Self::ModelId,
+            Balance = BalanceOf<Self>,
+        >;
+
         #[cfg(feature = "runtime-benchmarks")]
-        type BenchmarkHelper: benchmarking::BenchmarkHelper<Self::ModelId>;
+        type BenchmarkHelper: benchmarking::ModelFactory<Self::ModelId>;
     }
 
     /// The current order ID. This is incremented when a new order is created.
@@ -84,7 +91,7 @@ pub mod pallet {
         StorageDoubleMap<_, Twox64Concat, Consumer<T>, Blake2_128Concat, T::OrderId, ()>;
 
     // TODO. Remove this storage in favor of Backend.
-    /// Orders created by a provider.
+    /// Orders bid by a provider.
     #[pallet::storage]
     pub type ProviderOrders<T: Config> =
         StorageDoubleMap<_, Twox64Concat, Provider<T>, Blake2_128Concat, T::OrderId, ()>;
@@ -92,7 +99,7 @@ pub mod pallet {
     /// Bids currently existing in the network.
     #[pallet::storage]
     pub type OrderBids<T: Config> =
-        StorageDoubleMap<_, Blake2_128Concat, T::OrderId, Twox64Concat, Provider<T>, Bid<T>>;
+        StorageDoubleMap<_, Blake2_128Concat, T::OrderId, Twox64Concat, Provider<T>, BidDetails<T>>;
 
     /// A reason for the Market pallet placing a hold on funds.
     #[pallet::composite_enum]
@@ -152,14 +159,14 @@ pub mod pallet {
         pub fn order_create(
             origin: OriginFor<T>,
             model_id: T::ModelId,
-            requests_total: u32,
+            requests_total: RequestsUsize,
         ) -> DispatchResult {
             let consumer = ensure_signed(origin)?;
-            let order = OrderDetails::new(consumer, model_id.clone(), requests_total);
 
-            ensure!(That::<T>::order_valid(&order), Error::<T>::OrderInvalid);
+            let order_details = OrderDetails::new(consumer, model_id.clone(), requests_total);
+            ensure!(order_details.is_valid(), Error::<T>::OrderInvalid);
 
-            let order_id = Storage::<T>::insert_order(order);
+            let order_id = Order::<T>::insert(order_details);
 
             Self::deposit_event(Event::OrderCreated { order_id, model_id });
             Ok(())
@@ -175,11 +182,11 @@ pub mod pallet {
         ) -> DispatchResult {
             let provider = ensure_signed(origin)?;
 
-            ensure!(That::<T>::order_exists(order_id), Error::<T>::OrderNotFound);
-            ensure!(!That::<T>::bid_exists(order_id, &provider), Error::<T>::BidAlreadyExists);
+            ensure!(Order::<T>::exists(order_id), Error::<T>::OrderNotFound);
+            ensure!(!Bid::<T>::exists(order_id, &provider), Error::<T>::BidAlreadyExists);
 
-            let bid = Bid::new(provider.clone(), price_per_request);
-            Storage::<T>::insert_bid(order_id, &provider, bid);
+            let bid_details = BidDetails::new(provider.clone(), price_per_request);
+            Bid::<T>::insert(order_id, &provider, bid_details);
 
             Self::deposit_event(Event::BidCreated { order_id, provider, price_per_request });
             Ok(())
@@ -195,13 +202,19 @@ pub mod pallet {
         ) -> DispatchResult {
             let consumer = ensure_signed(origin)?;
 
-            ensure!(That::<T>::order_exists(order_id), Error::<T>::OrderNotFound);
-            ensure!(That::<T>::owns_order(&consumer, order_id), Error::<T>::OrderInvalid);
-            ensure!(That::<T>::bid_exists(order_id, &provider), Error::<T>::BidNotFound);
+            let order = Orders::<T>::get(order_id).ok_or(Error::<T>::OrderNotFound)?;
+            ensure!(order.is_owned_by(&consumer), Error::<T>::OrderInvalid);
+            let bid = OrderBids::<T>::get(order_id, &provider).ok_or(Error::<T>::BidNotFound)?;
 
-            // TODO create execution flow
-
-            Storage::<T>::remove_order(order_id);
+            T::AgreementManagement::create_agreement(
+                consumer,
+                provider.clone(),
+                order_id,
+                order.model_id,
+                bid.price_per_request,
+                order.requests_total,
+            )?;
+            Order::<T>::remove(order_id);
 
             Self::deposit_event(Event::BidAccepted { order_id, provider });
             Ok(())

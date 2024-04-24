@@ -245,12 +245,19 @@ impl pallet_sudo::Config for Runtime {
 }
 
 #[cfg(feature = "runtime-benchmarks")]
-pub struct AIMarketBenchmarkHelper;
+pub struct AiroBenchmarkHelper;
 
 #[cfg(feature = "runtime-benchmarks")]
-impl pallet_market::benchmarking::BenchmarkHelper<ModelId> for AIMarketBenchmarkHelper {
+impl airo_primitives::benchmarking::ModelFactory<ModelId> for AiroBenchmarkHelper {
     fn get_model_id() -> ModelId {
         ModelId::try_from(vec![1; 128]).unwrap()
+    }
+}
+
+#[cfg(feature = "runtime-benchmarks")]
+impl airo_primitives::benchmarking::ContentFactory<Hash> for AiroBenchmarkHelper {
+    fn get_content_id() -> Hash {
+        Hash::repeat_byte(26)
     }
 }
 
@@ -261,8 +268,21 @@ impl pallet_market::Config for Runtime {
     type Currency = Balances;
     type ModelId = ModelId;
     type OrderId = u32;
+    type AgreementManagement = AiroExecution;
     #[cfg(feature = "runtime-benchmarks")]
-    type BenchmarkHelper = AIMarketBenchmarkHelper;
+    type BenchmarkHelper = AiroBenchmarkHelper;
+}
+
+impl pallet_execution::Config for Runtime {
+    type WeightInfo = ();
+    type RuntimeEvent = RuntimeEvent;
+    type RuntimeHoldReason = RuntimeHoldReason;
+    type Currency = Balances;
+    type AgreementId = u32;
+    type ModelId = ModelId;
+    type ContentId = Hash;
+    #[cfg(feature = "runtime-benchmarks")]
+    type BenchmarkHelper = AiroBenchmarkHelper;
 }
 
 // Create the runtime by composing the FRAME pallets that were previously configured.
@@ -304,7 +324,10 @@ mod runtime {
     pub type Sudo = pallet_sudo;
 
     #[runtime::pallet_index(7)]
-    pub type AIMarket = pallet_market;
+    pub type AiroMarket = pallet_market;
+
+    #[runtime::pallet_index(8)]
+    pub type AiroExecution = pallet_execution;
 }
 
 /// The address format for describing accounts.
@@ -354,7 +377,8 @@ mod benches {
         [pallet_balances, Balances]
         [pallet_timestamp, Timestamp]
         [pallet_sudo, Sudo]
-        [pallet_market, AIMarket]
+        [pallet_market, AiroMarket]
+        [pallet_execution, AiroExecution]
     );
 }
 

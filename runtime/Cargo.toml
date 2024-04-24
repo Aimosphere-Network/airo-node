@@ -57,6 +57,8 @@ pallet-transaction-payment-rpc-runtime-api = { workspace = true }
 frame-benchmarking = { workspace = true, optional = true }
 frame-system-benchmarking = { workspace = true, optional = true }
 
+airo-primitives = { path = "../primitives" }
+pallet-execution = { path = "../pallets/execution", default-features = false }
 pallet-market = { path = "../pallets/market", default-features = false }
 
 [build-dependencies]
@@ -78,7 +80,6 @@ std = [
     "pallet-balances/std",
     "pallet-grandpa/std",
     "pallet-sudo/std",
-    "pallet-market/std",
     "pallet-timestamp/std",
     "pallet-transaction-payment-rpc-runtime-api/std",
     "pallet-transaction-payment/std",
@@ -97,6 +98,8 @@ std = [
     "sp-transaction-pool/std",
     "sp-version/std",
     "substrate-wasm-builder",
+    "pallet-execution/std",
+    "pallet-market/std",
 ]
 
 runtime-benchmarks = [
@@ -107,9 +110,10 @@ runtime-benchmarks = [
     "pallet-balances/runtime-benchmarks",
     "pallet-grandpa/runtime-benchmarks",
     "pallet-sudo/runtime-benchmarks",
-    "pallet-market/runtime-benchmarks",
     "pallet-timestamp/runtime-benchmarks",
     "sp-runtime/runtime-benchmarks",
+    "pallet-execution/runtime-benchmarks",
+    "pallet-market/runtime-benchmarks",
 ]
 
 try-runtime = [
@@ -121,8 +125,9 @@ try-runtime = [
     "pallet-balances/try-runtime",
     "pallet-grandpa/try-runtime",
     "pallet-sudo/try-runtime",
-    "pallet-market/try-runtime",
     "pallet-timestamp/try-runtime",
     "pallet-transaction-payment/try-runtime",
     "sp-runtime/try-runtime",
+    "pallet-execution/try-runtime",
+    "pallet-market/try-runtime",
 ]

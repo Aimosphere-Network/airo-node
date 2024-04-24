@@ -5,25 +5,21 @@ use frame_support::assert_ok;
 use frame_system::RawOrigin;
 use sp_std::prelude::*;
 
+pub use airo_primitives::benchmarking::ModelFactory;
+
 #[allow(unused)]
-use crate::Pallet as AIMarket;
+use crate::Pallet as AiroMarket;
 
 use super::*;
-
-pub trait BenchmarkHelper<ModelId> {
-    fn get_model_id() -> ModelId;
-}
 
 const SEED: u32 = 0;
 
 fn get_account<T: Config>(index: u32) -> T::AccountId {
-    let account = account("account", index, SEED);
-    T::Currency::set_balance(&account, BalanceOf::<T>::from(100_000_000u32));
-    account
+    account("account", index, SEED)
 }
 
 fn create_order<T: Config>(consumer: T::AccountId) -> T::OrderId {
-    assert_ok!(AIMarket::<T>::order_create(
+    assert_ok!(AiroMarket::<T>::order_create(
         RawOrigin::Signed(consumer).into(),
         T::BenchmarkHelper::get_model_id(),
         10_000,
@@ -33,7 +29,7 @@ fn create_order<T: Config>(consumer: T::AccountId) -> T::OrderId {
 
 fn create_bid<T: Config>(provider: T::AccountId, order_id: T::OrderId) {
     let price_per_request = BalanceOf::<T>::from(10u32);
-    assert_ok!(AIMarket::<T>::bid_create(
+    assert_ok!(AiroMarket::<T>::bid_create(
         RawOrigin::Signed(provider).into(),
         order_id,
         price_per_request
@@ -78,5 +74,5 @@ mod benchmarks {
         _(RawOrigin::Signed(consumer), order_id, provider);
     }
 
-    impl_benchmark_test_suite!(AIMarket, mock::new_test_ext(), mock::Test);
+    impl_benchmark_test_suite!(AiroMarket, mock::new_test_ext(), mock::Test);
 }

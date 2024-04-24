@@ -10,7 +10,8 @@ license = "GPL-3"
 resolver = "2"
 members = [
     "node",
-    "pallets/market",
+    "pallets/*",
+    "primitives",
     "runtime",
 ]
 

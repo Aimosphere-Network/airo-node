@@ -1,6 +1,5 @@
 use frame_support::{
     derive_impl,
-    dispatch::DispatchResult,
     traits::{ConstU16, ConstU32, ConstU64},
     BoundedVec,
 };
@@ -10,16 +9,14 @@ use sp_runtime::{
     BuildStorage,
 };
 
-use airo_primitives::agreement::AgreementManagement;
-use airo_primitives::RequestsUsize;
-
-use crate as pallet_market;
+use crate as pallet_execution;
 
 type Block = frame_system::mocking::MockBlock<Test>;
 pub type AccountId = u64;
 pub type Balance = u64;
-type ModelId = BoundedVec<u8, ConstU32<128>>;
-pub type OrderId = u32;
+pub type ModelId = BoundedVec<u8, ConstU32<128>>;
+pub type AgreementId = u32;
+pub type ContentId = H256;
 
 // Configure a mock runtime to test the pallet.
 frame_support::construct_runtime!(
@@ -27,7 +24,7 @@ frame_support::construct_runtime!(
     {
         System: frame_system,
         Balances: pallet_balances,
-        AiroMarket: pallet_market,
+        AiroExecution: pallet_execution,
     }
 );
 
@@ -75,47 +72,36 @@ impl pallet_balances::Config for Test {
 }
 
 #[cfg(feature = "runtime-benchmarks")]
-pub struct AiroMarketBenchmarkHelper;
+pub struct AiroExecutionBenchmarkHelper;
 
 #[cfg(feature = "runtime-benchmarks")]
-impl crate::benchmarking::ModelFactory<ModelId> for AiroMarketBenchmarkHelper {
+impl crate::benchmarking::ModelFactory<ModelId> for AiroExecutionBenchmarkHelper {
     fn get_model_id() -> ModelId {
         sp_core::bounded_vec![1; 128]
     }
 }
 
-pub struct MockAgreementManagement;
-
-impl AgreementManagement for MockAgreementManagement {
-    type AccountId = AccountId;
-    type OrderId = OrderId;
-    type ModelId = ModelId;
-    type Balance = Balance;
-
-    fn create_agreement(
-        _consumer: Self::AccountId,
-        _provider: Self::AccountId,
-        _order_id: Self::OrderId,
-        _model_id: Self::ModelId,
-        _price_per_request: Self::Balance,
-        _requests_total: RequestsUsize,
-    ) -> DispatchResult {
-        Ok(())
+#[cfg(feature = "runtime-benchmarks")]
+impl crate::benchmarking::ContentFactory<ContentId> for AiroExecutionBenchmarkHelper {
+    fn get_content_id() -> ContentId {
+        ContentId::random()
     }
 }
 
-impl pallet_market::Config for Test {
+impl pallet_execution::Config for Test {
     type WeightInfo = ();
     type RuntimeEvent = RuntimeEvent;
     type RuntimeHoldReason = RuntimeHoldReason;
     type Currency = Balances;
+    type AgreementId = AgreementId;
     type ModelId = ModelId;
-    type OrderId = OrderId;
-    type AgreementManagement = MockAgreementManagement;
+    type ContentId = ContentId;
     #[cfg(feature = "runtime-benchmarks")]
-    type BenchmarkHelper = AiroMarketBenchmarkHelper;
+    type BenchmarkHelper = AiroExecutionBenchmarkHelper;
 }
 
+pub const INITIAL_BALANCE: Balance = 1_000_000_000;
+pub const CONSUMER_NO_BALANCE: AccountId = 0;
 pub const CONSUMER_1: AccountId = 1;
 pub const CONSUMER_2: AccountId = 2;
 pub const PROVIDER_1: AccountId = 11;
@@ -123,7 +109,14 @@ pub const PROVIDER_2: AccountId = 12;
 
 // Build genesis storage according to the mock runtime.
 pub fn new_test_ext() -> sp_io::TestExternalities {
-    let storage = frame_system::GenesisConfig::<Test>::default().build_storage().unwrap();
+    let mut storage = frame_system::GenesisConfig::<Test>::default().build_storage().unwrap();
+
+    pallet_balances::GenesisConfig::<Test> {
+        balances: vec![(CONSUMER_1, INITIAL_BALANCE), (CONSUMER_2, INITIAL_BALANCE)],
+    }
+    .assimilate_storage(&mut storage)
+    .unwrap();
+
     let mut ext = sp_io::TestExternalities::new(storage);
     // Go past genesis block so events get deposited
     ext.execute_with(|| System::set_block_number(1));

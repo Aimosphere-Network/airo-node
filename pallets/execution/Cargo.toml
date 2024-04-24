@@ -1,6 +1,6 @@
 [package]
-name = "pallet-market"
-description = "Pallet for negotiating deals on aimosphere network"
+name = "pallet-execution"
+description = "Pallet for model exection flow on aimosphere network"
 version = { workspace = true }
 authors = { workspace = true }
 license = { workspace = true }
