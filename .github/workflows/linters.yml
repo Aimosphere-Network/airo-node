@@ -24,6 +24,6 @@ jobs:
 
       - name: Format and clippy
         run: |
-          cargo fmt --all -- --check
-          cargo clippy -- -D warnings
-          cargo clippy --tests -- -D warnings
+          chmod +x ./utils/linters.sh
+          ./utils/linters.sh
+        shell: bash
