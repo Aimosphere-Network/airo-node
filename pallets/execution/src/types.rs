@@ -18,7 +18,9 @@ pub struct AgreementDetails<T: Config> {
     pub provider: T::AccountId,
     pub model_id: T::ModelId,
     pub price_per_request: BalanceOf<T>,
+    #[codec(compact)]
     pub requests_count: RequestsUsize,
+    #[codec(compact)]
     pub requests_total: RequestsUsize,
 }
 

@@ -15,6 +15,7 @@ pub type Provider<T> = AccountIdOf<T>;
 pub struct OrderDetails<T: Config> {
     pub consumer: Consumer<T>,
     pub model_id: T::ModelId,
+    #[codec(compact)]
     pub requests_total: RequestsUsize,
 }
 
