@@ -11,6 +11,7 @@ resolver = "2"
 members = [
     "node",
     "pallets/*",
+    "pallets/execution/rpc",
     "primitives",
     "runtime",
 ]
@@ -29,6 +30,9 @@ rpath = false        # Disables adding rpath to the binary
 unit_arg = { level = "allow", priority = 1 }
 
 [workspace.dependencies]
+jsonrpsee = { version = "0.22" }
+futures = { version = "0.3" }
+
 # substrate client
 sc-basic-authorship = { git = "https://github.com/paritytech/polkadot-sdk", branch = "release-polkadot-v1.11.0" }
 sc-cli = { git = "https://github.com/paritytech/polkadot-sdk", branch = "release-polkadot-v1.11.0" }

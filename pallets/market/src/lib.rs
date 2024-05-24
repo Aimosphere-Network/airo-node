@@ -159,8 +159,7 @@ pub mod pallet {
         pub fn order_create(
             origin: OriginFor<T>,
             model_id: T::ModelId,
-            #[pallet::compact]
-            requests_total: RequestsUsize,
+            #[pallet::compact] requests_total: RequestsUsize,
         ) -> DispatchResult {
             let consumer = ensure_signed(origin)?;
 

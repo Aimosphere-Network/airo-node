@@ -14,8 +14,8 @@ pub type Provider<T> = AccountIdOf<T>;
 #[derive(Clone, Encode, Decode, Eq, PartialEq, Debug, MaxEncodedLen, TypeInfo)]
 #[scale_info(skip_type_params(T))]
 pub struct AgreementDetails<T: Config> {
-    pub consumer: T::AccountId,
-    pub provider: T::AccountId,
+    pub consumer: Consumer<T>,
+    pub provider: Provider<T>,
     pub model_id: T::ModelId,
     pub price_per_request: BalanceOf<T>,
     #[codec(compact)]
@@ -26,8 +26,8 @@ pub struct AgreementDetails<T: Config> {
 
 impl<T: Config> AgreementDetails<T> {
     pub fn new(
-        consumer: T::AccountId,
-        provider: T::AccountId,
+        consumer: Consumer<T>,
+        provider: Provider<T>,
         model_id: T::ModelId,
         price_per_request: BalanceOf<T>,
         requests_total: RequestsUsize,

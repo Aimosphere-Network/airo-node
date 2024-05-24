@@ -114,6 +114,7 @@ dependencies = [
  "frame-system",
  "futures",
  "jsonrpsee",
+ "pallet-execution-rpc",
  "pallet-transaction-payment",
  "pallet-transaction-payment-rpc",
  "sc-basic-authorship",
@@ -5045,6 +5046,17 @@ dependencies = [
  "sp-io",
  "sp-runtime",
  "sp-std 14.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=release-polkadot-v1.11.0)",
+]
+
+[[package]]
+name = "pallet-execution-rpc"
+version = "0.0.1"
+dependencies = [
+ "bytes",
+ "futures",
+ "jsonrpsee",
+ "sc-network",
+ "sp-core",
 ]
 
 [[package]]

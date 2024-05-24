@@ -1,15 +1,18 @@
 //! Service and ServiceFactory implementation. Specialized wrapper over substrate service.
 
-use airo_runtime::{self, opaque::Block, RuntimeApi};
-use futures::FutureExt;
+use std::{sync::Arc, time::Duration};
+
+use futures::{FutureExt, StreamExt};
 use sc_client_api::{Backend, BlockBackend};
 use sc_consensus_aura::{ImportQueueParams, SlotProportion, StartAuraParams};
 use sc_consensus_grandpa::SharedVoterState;
+use sc_network::Event;
 use sc_service::{error::Error as ServiceError, Configuration, TaskManager, WarpSyncParams};
 use sc_telemetry::{Telemetry, TelemetryWorker};
 use sc_transaction_pool_api::OffchainTransactionPoolFactory;
 use sp_consensus_aura::sr25519::AuthorityPair as AuraPair;
-use std::{sync::Arc, time::Duration};
+
+use airo_runtime::{self, opaque::Block, RuntimeApi};
 
 pub(crate) type FullClient = sc_service::TFullClient<
     Block,
@@ -212,15 +215,33 @@ pub fn new_full<
         let client = client.clone();
         let pool = transaction_pool.clone();
 
+        let dht_event_stream = network.event_stream("data-exchange").filter_map(|e| async move {
+            match e {
+                Event::Dht(e) => Some(e),
+                _ => None,
+            }
+        });
+        let (worker, service) = pallet_execution_rpc::new_worker_and_service(
+            Arc::new(network.clone()),
+            Box::pin(dht_event_stream),
+        );
+        task_manager
+            .spawn_handle()
+            .spawn("data-exchange-worker", Some("networking"), worker.run());
+
         Box::new(move |deny_unsafe, _| {
-            let deps =
-                crate::rpc::FullDeps { client: client.clone(), pool: pool.clone(), deny_unsafe };
+            let deps = crate::rpc::FullDeps {
+                client: client.clone(),
+                pool: pool.clone(),
+                deny_unsafe,
+                data_exchange_deps: crate::rpc::DataExchangeDeps { service: service.clone() },
+            };
             crate::rpc::create_full(deps).map_err(Into::into)
         })
     };
 
     let _rpc_handlers = sc_service::spawn_tasks(sc_service::SpawnTasksParams {
-        network: Arc::new(network.clone()),
+        network: network.clone(),
         client: client.clone(),
         keystore: keystore_container.keystore(),
         task_manager: &mut task_manager,

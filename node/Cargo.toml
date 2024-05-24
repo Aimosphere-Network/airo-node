@@ -19,9 +19,9 @@ targets = ["x86_64-unknown-linux-gnu"]
 
 [dependencies]
 clap = { version = "4.5", features = ["derive"] }
-futures = { version = "0.3", features = ["thread-pool"] }
 serde_json = "1.0"
-jsonrpsee = { version = "0.22", features = ["server"] }
+futures = { workspace = true, features = ["thread-pool"] }
+jsonrpsee = { workspace = true, features = ["server"] }
 
 # substrate client
 sc-cli = { workspace = true }
@@ -63,6 +63,7 @@ frame-benchmarking-cli = { workspace = true }
 
 # Local Dependencies
 airo-runtime = { path = "../runtime" }
+pallet-execution-rpc = { path = "../pallets/execution/rpc" }
 
 [build-dependencies]
 substrate-build-script-utils = { workspace = true }
