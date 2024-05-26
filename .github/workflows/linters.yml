@@ -24,6 +24,6 @@ jobs:
 
       - name: Format and clippy
         run: |
-          chmod +x ./utils/linters.sh
-          ./utils/linters.sh
+          chmod +x ./.maintain/linters.sh
+          ./.maintain/linters.sh
         shell: bash

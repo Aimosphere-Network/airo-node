@@ -1,0 +1,26 @@
+### Upload data
+POST http://localhost:9944
+Content-Type: application/json
+
+{
+  "id": 1,
+  "jsonrpc": "2.0",
+  "method": "exchange_upload",
+  "params": [
+    "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+    "0x123"
+  ]
+}
+
+### Download data
+POST http://localhost:9944
+Content-Type: application/json
+
+{
+  "id": 1,
+  "jsonrpc": "2.0",
+  "method": "exchange_download",
+  "params": [
+    "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+  ]
+}

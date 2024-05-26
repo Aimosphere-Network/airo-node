@@ -197,8 +197,7 @@ pub mod pallet {
         pub fn response_create(
             origin: OriginFor<T>,
             agreement_id: T::AgreementId,
-            #[pallet::compact]
-            request_index: RequestsUsize,
+            #[pallet::compact] request_index: RequestsUsize,
             content_id: T::ContentId,
         ) -> DispatchResult {
             let provider = ensure_signed(origin)?;

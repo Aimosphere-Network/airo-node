@@ -1,0 +1,68 @@
+version: '3'
+services:
+  node-alice:
+    ports:
+      - "9945:9944"
+      - "9616:9615"
+    volumes:
+      - ../../target/release/airo:/usr/local/bin/airo
+    image: aimosphere/airo
+    networks:
+      testing_net:
+        ipv4_address: 172.28.1.1
+    command:
+      - "--node-key"
+      - "0000000000000000000000000000000000000000000000000000000000000001"
+      - "--base-path"
+      - "/tmp/alice"
+      - "--chain=local"
+      - "--port"
+      - "30333"
+      - "--validator"
+      - "--alice"
+      - "--bootnodes"
+      - "/dns/node-bob/tcp/30333/p2p/12D3KooWHdiAxVd8uMQR1hGWXccidmfCwLqcMpGwR6QcTP6QRMuD"
+      - "--unsafe-rpc-external"
+#      - "--log"
+#      - "sub-libp2p=trace"
+      - "--no-telemetry"
+      - "--rpc-cors"
+      - "all"
+      - "--prometheus-external"
+
+  node-bob:
+    image: aimosphere/airo
+    ports:
+      - "9946:9944"
+      - "9617:9615"
+    volumes:
+      - ../../target/release/airo:/usr/local/bin/airo
+    networks:
+      testing_net:
+        ipv4_address: 172.28.1.2
+    command:
+      - "--node-key"
+      - "0000000000000000000000000000000000000000000000000000000000000002"
+      - "--base-path"
+      - "/tmp/bob"
+      - "--chain=local"
+      - "--port"
+      - "30333"
+      - "--validator"
+      - "--bob"
+      - "--bootnodes"
+      - "/dns/node-alice/tcp/30333/p2p/12D3KooWEyoppNCUx8Yx66oV9fJnriXwCcXwDDUA2kj6vnc6iDEp"
+      - "--no-telemetry"
+      - "--rpc-cors"
+      - "all"
+      - "--unsafe-rpc-external"
+#      - "--log"
+#      - "sub-libp2p=trace"
+      - "--prometheus-external"
+
+networks:
+  testing_net:
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.28.0.0/16
