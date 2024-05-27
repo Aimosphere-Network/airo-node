@@ -29,7 +29,7 @@ pub trait DataExchangeApi<Key> {
     async fn upload(&self, key: Key, data: Bytes) -> RpcResult<()>;
 
     #[method(name = "exchange_download")]
-    async fn download(&self, key: Key) -> RpcResult<Option<Vec<u8>>>;
+    async fn download(&self, key: Key) -> RpcResult<Option<Bytes>>;
 }
 
 /// Provides RPC methods to exchange data offchain.
@@ -54,8 +54,8 @@ where
         Ok(())
     }
 
-    async fn download(&self, key: Key) -> RpcResult<Option<Vec<u8>>> {
-        Ok(self.service.clone().get_data(KademliaKey::new(&key)).await)
+    async fn download(&self, key: Key) -> RpcResult<Option<Bytes>> {
+        Ok(self.service.clone().get_data(KademliaKey::new(&key)).await.map(Bytes))
     }
 }
 

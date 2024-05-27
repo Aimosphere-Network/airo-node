@@ -1,5 +1,5 @@
 ### Upload data
-POST http://localhost:9944
+POST http://localhost:9945
 Content-Type: application/json
 
 {
@@ -7,13 +7,13 @@ Content-Type: application/json
   "jsonrpc": "2.0",
   "method": "exchange_upload",
   "params": [
-    "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
-    "0x123"
+    "0x415c5b6ebf7beeb13c7e4c46b19e6466be41df527a9d9f4879f53b347dda9790",
+    "0x010203"
   ]
 }
 
 ### Download data
-POST http://localhost:9944
+POST http://localhost:9946
 Content-Type: application/json
 
 {
@@ -21,6 +21,6 @@ Content-Type: application/json
   "jsonrpc": "2.0",
   "method": "exchange_download",
   "params": [
-    "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+    "0x415c5b6ebf7beeb13c7e4c46b19e6466be41df527a9d9f4879f53b347dda9790"
   ]
 }
