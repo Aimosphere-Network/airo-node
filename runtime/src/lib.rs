@@ -62,6 +62,7 @@ pub type Nonce = u32;
 pub type Hash = sp_core::H256;
 
 /// Model ID.
+// TODO. Allow non-empty, valid utf-8 model IDs only. When done a `Default` trait bound in the Market pallet can be removed.
 pub type ModelId = BoundedVec<u8, ConstU32<128>>;
 
 /// Opaque types. These are used by the CLI to instantiate machinery that don't need to know
