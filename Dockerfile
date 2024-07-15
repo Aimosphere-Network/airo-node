@@ -1,5 +1,5 @@
 # This is the build stage for Airo. Here we create the binary in a temporary image.
-FROM docker.io/paritytech/ci-linux:production as builder
+FROM docker.io/paritytech/ci-linux:production AS builder
 
 WORKDIR /airo
 COPY . /airo
