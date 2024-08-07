@@ -84,7 +84,7 @@ pub mod pallet {
     #[pallet::storage]
     pub type Orders<T: Config> = StorageMap<_, Blake2_128Concat, T::OrderId, OrderDetails<T>>;
 
-    // TODO. Remove this storage in favor of Backend.
+    // TODO. Remove this storage in favor of Backend, or move `OrderDetails` here and remove `Orders`.
     /// Orders created by a consumer.
     #[pallet::storage]
     pub type ConsumerOrders<T: Config> =
