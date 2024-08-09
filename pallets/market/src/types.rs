@@ -36,6 +36,7 @@ impl<T: Config> OrderDetails<T> {
 #[derive(Clone, Encode, Decode, Eq, PartialEq, Debug, MaxEncodedLen, TypeInfo)]
 #[scale_info(skip_type_params(T))]
 pub struct BidDetails<T: Config> {
+    // TODO. This might be redundant as `OrderBids` already contains this provider.
     pub provider: Provider<T>,
     pub price_per_request: BalanceOf<T>,
 }
