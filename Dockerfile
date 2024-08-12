@@ -3,12 +3,12 @@ FROM docker.io/paritytech/ci-linux:production AS builder
 
 WORKDIR /airo
 COPY . /airo
-RUN RUSTUP_PERMIT_COPY_RENAME=1 cargo build --locked --release
+RUN RUSTUP_PERMIT_COPY_RENAME=1 cargo build --locked --profile=production
 
 # This is the 2nd stage: a very small image where we copy the Airo binary."
 FROM docker.io/library/ubuntu:24.04
 
-COPY --from=builder /airo/target/release/airo /usr/local/bin
+COPY --from=builder /airo/target/production/airo /usr/local/bin
 
 RUN useradd -m -u 1001 -U -s /bin/sh -d /airo airo && \
 	mkdir -p /data /airo/.local/share && \
