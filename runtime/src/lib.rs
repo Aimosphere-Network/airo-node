@@ -1,6 +1,7 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use frame_support::genesis_builder_helper::{build_state, get_preset};
+extern crate alloc;
+use alloc::{vec, vec::Vec};
 pub use frame_support::{
     construct_runtime, derive_impl, parameter_types,
     traits::{
@@ -14,6 +15,10 @@ pub use frame_support::{
         IdentityFee, Weight,
     },
     StorageValue,
+};
+use frame_support::{
+    genesis_builder_helper::{build_state, get_preset},
+    traits::VariantCountOf,
 };
 pub use frame_system::Call as SystemCall;
 pub use pallet_balances::Call as BalancesCall;
@@ -32,7 +37,6 @@ use sp_runtime::{
     ApplyExtrinsicResult, BoundedVec, MultiSignature,
 };
 pub use sp_runtime::{Perbill, Permill};
-use sp_std::prelude::*;
 #[cfg(feature = "std")]
 use sp_version::NativeVersion;
 use sp_version::RuntimeVersion;
@@ -212,7 +216,7 @@ impl pallet_balances::Config for Runtime {
     /// The ubiquitous event type.
     type RuntimeEvent = RuntimeEvent;
     type RuntimeHoldReason = RuntimeHoldReason;
-    type RuntimeFreezeReason = ();
+    type RuntimeFreezeReason = RuntimeFreezeReason;
     type WeightInfo = pallet_balances::weights::SubstrateWeight<Runtime>;
     /// The type for recording an account's balance.
     type Balance = Balance;
@@ -220,10 +224,10 @@ impl pallet_balances::Config for Runtime {
     type ExistentialDeposit = ConstU128<EXISTENTIAL_DEPOSIT>;
     type AccountStore = System;
     type ReserveIdentifier = [u8; 8];
-    type FreezeIdentifier = ();
+    type FreezeIdentifier = RuntimeFreezeReason;
     type MaxLocks = ConstU32<50>;
     type MaxReserves = ();
-    type MaxFreezes = ();
+    type MaxFreezes = VariantCountOf<RuntimeFreezeReason>;
 }
 
 parameter_types! {
@@ -407,7 +411,7 @@ impl_runtime_apis! {
             Runtime::metadata_at_version(version)
         }
 
-        fn metadata_versions() -> sp_std::vec::Vec<u32> {
+        fn metadata_versions() -> Vec<u32> {
             Runtime::metadata_versions()
         }
     }
