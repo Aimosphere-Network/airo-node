@@ -9,9 +9,9 @@ license = "GPL-3"
 [workspace]
 resolver = "2"
 members = [
+    "dx",
     "node",
     "pallets/*",
-    "pallets/execution/rpc",
     "primitives",
     "runtime",
 ]
@@ -48,6 +48,7 @@ sc-service = { git = "https://github.com/paritytech/polkadot-sdk", tag = "polkad
 sc-telemetry = { git = "https://github.com/paritytech/polkadot-sdk", tag = "polkadot-stable2407-1" }
 sc-transaction-pool = { git = "https://github.com/paritytech/polkadot-sdk", tag = "polkadot-stable2407-1" }
 sc-transaction-pool-api = { git = "https://github.com/paritytech/polkadot-sdk", tag = "polkadot-stable2407-1" }
+sc-utils = { git = "https://github.com/paritytech/polkadot-sdk", tag = "polkadot-stable2407-1" }
 
 # substrate primitives
 sp-api = { git = "https://github.com/paritytech/polkadot-sdk", tag = "polkadot-stable2407-1", default-features = false }

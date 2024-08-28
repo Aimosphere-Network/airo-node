@@ -7,6 +7,9 @@ pub struct Cli {
 
     #[clap(flatten)]
     pub run: RunCmd,
+
+    #[arg(long, value_name = "PORT")]
+    pub dx_port: Option<u16>,
 }
 
 #[derive(Debug, clap::Subcommand)]
