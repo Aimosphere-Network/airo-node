@@ -1,10 +1,10 @@
+use futures::{channel::mpsc, executor::LocalPool, task::LocalSpawn};
+use sc_network::{DhtEvent, KademliaKey, NetworkDHTProvider, PeerId};
+use std::time::Instant;
 use std::{
     collections::HashMap,
     sync::{Arc, Mutex},
 };
-
-use futures::{channel::mpsc, executor::LocalPool, task::LocalSpawn};
-use sc_network::{DhtEvent, KademliaKey, NetworkDHTProvider};
 
 use crate::new_worker_and_service;
 
@@ -32,6 +32,16 @@ impl NetworkDHTProvider for TestNetwork {
     fn put_value(&self, key: KademliaKey, value: Vec<u8>) {
         self.dht.lock().unwrap().insert(key.clone(), value);
         self.event_sender.clone().unbounded_send(DhtEvent::ValuePut(key)).unwrap();
+    }
+
+    fn store_record(
+        &self,
+        _key: KademliaKey,
+        _value: Vec<u8>,
+        _publisher: Option<PeerId>,
+        _expires: Option<Instant>,
+    ) {
+        unimplemented!()
     }
 }
 
