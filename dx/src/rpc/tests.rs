@@ -35,7 +35,7 @@ impl DxNetworkProvider for TestNetwork {
         let event = match self.dx_peers.lock().unwrap().get(&key) {
             None => DxEvent::FoundProvidersFailed { key },
             Some(peer) => {
-                let providers = HashSet::from([peer.clone()]);
+                let providers = HashSet::from([*peer]);
                 DxEvent::FoundProviders { key, providers }
             },
         };

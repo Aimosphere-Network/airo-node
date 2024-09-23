@@ -1,7 +1,8 @@
 use libp2p::{
-    kad, request_response, request_response::ProtocolSupport, swarm::NetworkBehaviour, Multiaddr,
-    PeerId, StreamProtocol,
+    kad, mdns, request_response, request_response::ProtocolSupport, swarm::NetworkBehaviour,
+    Multiaddr, PeerId, StreamProtocol,
 };
+use sc_telemetry::log;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -17,6 +18,7 @@ pub struct DataResponse {
 pub struct Behaviour {
     pub kademlia: kad::Behaviour<kad::store::MemoryStore>,
     pub request_response: request_response::cbor::Behaviour<DataRequest, DataResponse>,
+    pub mdns: mdns::tokio::Behaviour,
 }
 
 impl Behaviour {
@@ -34,12 +36,17 @@ impl Behaviour {
             kademlia.add_address(&peer_id, addr);
         }
 
+        let mdns = mdns::tokio::Behaviour::new(mdns::Config::default(), peer_id)
+            .map_err(|e| log::error!(target: "dx-libp2p", "👻 mdns error: {:?}", e))
+            .expect("mDNS starts properly");
+
         Self {
             kademlia,
             request_response: request_response::cbor::Behaviour::new(
                 [(protocol("p2p", genesis_hash), ProtocolSupport::Full)],
                 request_response::Config::default(),
             ),
+            mdns,
         }
     }
 }

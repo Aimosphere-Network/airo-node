@@ -11,6 +11,7 @@ use libp2p::{
     identity::{ed25519, Keypair},
     kad,
     kad::{AddProviderError, AddProviderOk, GetProvidersError, GetProvidersOk},
+    mdns,
     multiaddr::Protocol,
     noise, request_response,
     request_response::OutboundRequestId,
@@ -209,7 +210,8 @@ impl NetworkWorker {
                                 .behaviour_mut()
                                 .kademlia
                                 .query_mut(&id)
-                                .map(|mut q| q.finish());
+                                .expect("The current query exists; qed")
+                                .finish();
                         },
                         Err(GetProvidersError::Timeout { key, .. }) => {
                             let _ = sender.send(Event::FoundProvidersFailed { key }).await;
@@ -265,6 +267,16 @@ impl NetworkWorker {
             SwarmEvent::Behaviour(BehaviourEvent::RequestResponse(
                 request_response::Event::ResponseSent { .. },
             )) => {},
+            SwarmEvent::Behaviour(BehaviourEvent::Mdns(mdns::Event::Discovered(list))) => {
+                for (peer, addr) in list {
+                    self.network.behaviour_mut().kademlia.add_address(&peer, addr);
+                }
+            },
+            SwarmEvent::Behaviour(BehaviourEvent::Mdns(mdns::Event::Expired(list))) => {
+                for (peer, addr) in list {
+                    self.network.behaviour_mut().kademlia.remove_address(&peer, &addr);
+                }
+            },
             SwarmEvent::NewListenAddr { address, .. } => {
                 let local_peer_id = *self.network.local_peer_id();
                 log::info!(target: "dx-libp2p", "👻 Listening on {:?}", address.with(Protocol::P2p(local_peer_id)));

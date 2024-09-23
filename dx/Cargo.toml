@@ -19,7 +19,7 @@ targets = ["x86_64-unknown-linux-gnu"]
 array-bytes = "6.2"
 async-channel = "2.3"
 hex = "0.4"
-libp2p = { version = "0.54", features = ["tokio", "cbor", "dns", "kad", "noise", "macros", "request-response", "tcp", "websocket", "yamux"] }
+libp2p = { version = "0.54", features = ["tokio", "cbor", "dns", "mdns", "kad", "noise", "macros", "request-response", "tcp", "websocket", "yamux"] }
 serde = "1.0"
 
 futures = { workspace = true, features = ["thread-pool"] }
