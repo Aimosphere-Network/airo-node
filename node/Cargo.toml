@@ -63,7 +63,7 @@ frame-benchmarking-cli = { workspace = true }
 
 # Local Dependencies
 airo-runtime = { path = "../runtime" }
-pallet-execution-rpc = { path = "../pallets/execution/rpc" }
+airo-dx = { path = "../dx" }
 
 [build-dependencies]
 substrate-build-script-utils = { workspace = true }

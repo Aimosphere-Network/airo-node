@@ -21,7 +21,7 @@ RUN useradd -m -u 1001 -U -s /bin/sh -d /airo airo && \
 
 USER airo
 
-EXPOSE 30333 9933 9944 9615
+EXPOSE 30333 30444 9933 9944 9615
 VOLUME ["/data"]
 
 ENTRYPOINT ["/usr/local/bin/airo"]

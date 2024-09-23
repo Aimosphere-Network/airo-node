@@ -5,7 +5,7 @@ Content-Type: application/json
 {
   "id": 1,
   "jsonrpc": "2.0",
-  "method": "exchange_upload",
+  "method": "dx_upload",
   "params": [
     "0x415c5b6ebf7beeb13c7e4c46b19e6466be41df527a9d9f4879f53b347dda9790",
     "0x010203"
@@ -17,10 +17,29 @@ POST http://localhost:9946
 Content-Type: application/json
 
 {
-  "id": 1,
+  "id": 2,
   "jsonrpc": "2.0",
-  "method": "exchange_download",
+  "method": "dx_download",
   "params": [
     "0x415c5b6ebf7beeb13c7e4c46b19e6466be41df527a9d9f4879f53b347dda9790"
+  ]
+}
+
+### Upload image data
+POST http://localhost:9946
+Content-Type: application/json
+
+< ./upload_image.json
+
+### Download image data
+POST http://localhost:9945
+Content-Type: application/json
+
+{
+  "id": 4,
+  "jsonrpc": "2.0",
+  "method": "dx_download",
+  "params": [
+    "0x9c10fbf7fd6a3122c0e4ba35cf54e4f9c23eac369bbac3b802398361c0bf45b0"
   ]
 }

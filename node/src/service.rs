@@ -1,18 +1,23 @@
 //! Service and ServiceFactory implementation. Specialized wrapper over substrate service.
 
-use std::{sync::Arc, time::Duration};
-
-use futures::{FutureExt, StreamExt};
+use airo_dx::network::{DxConfig, DxNetworkEventStream, DxNetworkService, DxNetworkWorker};
+use airo_runtime::{self, opaque::Block, RuntimeApi};
+use futures::FutureExt;
 use sc_client_api::{Backend, BlockBackend};
 use sc_consensus_aura::{ImportQueueParams, SlotProportion, StartAuraParams};
 use sc_consensus_grandpa::SharedVoterState;
-use sc_network::Event;
+use sc_network::{
+    config::{MultiaddrWithPeerId, NetworkConfiguration},
+    multiaddr::Protocol,
+    Multiaddr,
+};
 use sc_service::{error::Error as ServiceError, Configuration, TaskManager, WarpSyncParams};
 use sc_telemetry::{Telemetry, TelemetryWorker};
 use sc_transaction_pool_api::OffchainTransactionPoolFactory;
+use sp_blockchain::HeaderBackend;
 use sp_consensus_aura::sr25519::AuthorityPair as AuraPair;
-
-use airo_runtime::{self, opaque::Block, RuntimeApi};
+use sp_runtime::traits::{Block as BlockT, Zero};
+use std::{path::PathBuf, sync::Arc, time::Duration};
 
 pub(crate) type FullClient = sc_service::TFullClient<
     Block,
@@ -25,6 +30,8 @@ type FullSelectChain = sc_consensus::LongestChain<FullBackend, Block>;
 /// The minimum period of blocks on which justifications will be
 /// imported and generated.
 const GRANDPA_JUSTIFICATION_PERIOD: u32 = 512;
+
+const DEFAULT_DX_PORT: u16 = 30444;
 
 pub type Service = sc_service::PartialComponents<
     FullClient,
@@ -131,6 +138,7 @@ pub fn new_full<
     N: sc_network::NetworkBackend<Block, <Block as sp_runtime::traits::Block>::Hash>,
 >(
     config: Configuration,
+    dx_port: Option<u16>,
 ) -> Result<TaskManager, ServiceError> {
     let sc_service::PartialComponents {
         client,
@@ -211,23 +219,26 @@ pub fn new_full<
     let enable_grandpa = !config.disable_grandpa;
     let prometheus_registry = config.prometheus_registry().cloned();
 
+    let (dx_network_worker, dx_network_service) = build_dx_network(
+        client.clone(),
+        &config.network,
+        dx_port.unwrap_or(DEFAULT_DX_PORT),
+        config.base_path.path().to_path_buf(),
+    );
+    task_manager
+        .spawn_essential_handle()
+        .spawn("dx-network", Some("dx"), dx_network_worker.run());
+
     let rpc_extensions_builder = {
         let client = client.clone();
         let pool = transaction_pool.clone();
 
-        let dht_event_stream = network.event_stream("data-exchange").filter_map(|e| async move {
-            match e {
-                Event::Dht(e) => Some(e),
-                _ => None,
-            }
-        });
-        let (worker, service) = pallet_execution_rpc::new_worker_and_service(
-            Arc::new(network.clone()),
-            Box::pin(dht_event_stream),
+        let dx_event_stream = dx_network_service.event_stream();
+        let (worker, service) = airo_dx::rpc::new_worker_and_service(
+            Arc::new(dx_network_service.clone()),
+            dx_event_stream,
         );
-        task_manager
-            .spawn_handle()
-            .spawn("data-exchange-worker", Some("networking"), worker.run());
+        task_manager.spawn_handle().spawn("dx-rpc", Some("dx"), worker.run());
 
         Box::new(move |deny_unsafe, _| {
             let deps = crate::rpc::FullDeps {
@@ -350,4 +361,70 @@ pub fn new_full<
 
     network_starter.start_network();
     Ok(task_manager)
+}
+
+fn build_dx_network<Block: BlockT>(
+    client: Arc<dyn HeaderBackend<Block>>,
+    config: &NetworkConfiguration,
+    dx_port: u16,
+    path: PathBuf,
+) -> (DxNetworkWorker, Arc<dyn DxNetworkService>) {
+    let genesis_hash = client.hash(Zero::zero()).ok().flatten().expect("Genesis block exists; qed");
+
+    let dx_config = DxConfig::<Block> {
+        genesis_hash,
+        listen_addresses: config
+            .listen_addresses
+            .iter()
+            .cloned()
+            .map(|a| set_port(a, dx_port))
+            .collect(),
+        public_addresses: config
+            .public_addresses
+            .iter()
+            .cloned()
+            .map(|a| set_port(a, dx_port))
+            .collect(),
+        node_key: config.node_key.clone(),
+        known_addresses: config
+            .boot_nodes
+            .iter()
+            .map(|x| MultiaddrWithPeerId {
+                multiaddr: set_port(x.multiaddr.clone(), dx_port),
+                peer_id: x.peer_id,
+            })
+            .collect(),
+        path,
+    };
+
+    let worker = DxNetworkWorker::new(dx_config);
+    let service = worker.network_service();
+    (worker, service)
+}
+
+fn set_port(addr: Multiaddr, port: u16) -> Multiaddr {
+    let mut result = Multiaddr::empty();
+    for proto in addr.iter() {
+        match proto {
+            Protocol::Tcp(_) => {
+                result.push(Protocol::Tcp(port));
+            },
+            p => result.push(p),
+        }
+    }
+
+    result
+}
+
+#[test]
+fn test_set_port() {
+    let addr = "/dns/name.io/tcp/443/wss/p2p/12D3KooWEPmjoRpDSUuiTjvyNDd8fejZ9eNWH5bE965nyBMDrB4o"
+        .parse()
+        .unwrap();
+    let addr = set_port(addr, 12000);
+    assert_eq!(
+        addr.to_string(),
+        "/dns/name.io/tcp/12000/wss/p2p/12D3KooWEPmjoRpDSUuiTjvyNDd8fejZ9eNWH5bE965nyBMDrB4o"
+            .to_string()
+    );
 }

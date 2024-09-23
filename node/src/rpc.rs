@@ -14,12 +14,12 @@ use sp_api::ProvideRuntimeApi;
 use sp_block_builder::BlockBuilder;
 use sp_blockchain::{Error as BlockChainError, HeaderBackend, HeaderMetadata};
 
+use airo_dx::rpc::Service as DxService;
 use airo_runtime::{opaque::Block, AccountId, Balance, Hash, Nonce};
-use pallet_execution_rpc::Service as DataExchangeService;
 
 /// Extra dependencies for DataExchange.
 pub struct DataExchangeDeps {
-    pub service: DataExchangeService,
+    pub service: DxService,
 }
 
 /// Full client dependencies.
@@ -47,7 +47,7 @@ where
     C::Api: BlockBuilder<Block>,
     P: TransactionPool + 'static,
 {
-    use pallet_execution_rpc::{DataExchange, DataExchangeApiServer};
+    use airo_dx::rpc::{DataExchange, DataExchangeApiServer};
     use pallet_transaction_payment_rpc::{TransactionPayment, TransactionPaymentApiServer};
     use substrate_frame_rpc_system::{System, SystemApiServer};
 
