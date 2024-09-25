@@ -186,11 +186,11 @@ pub fn run() -> sc_cli::Result<()> {
                                 airo_runtime::opaque::Block,
                                 <airo_runtime::opaque::Block as sp_runtime::traits::Block>::Hash,
                             >,
-                        >(config, cli.dx_port)
+                        >(config, cli.dx)
                         .map_err(sc_cli::Error::Service)
                     },
                     sc_network::config::NetworkBackendType::Litep2p => {
-                        service::new_full::<sc_network::Litep2pNetworkBackend>(config, cli.dx_port)
+                        service::new_full::<sc_network::Litep2pNetworkBackend>(config, cli.dx)
                             .map_err(sc_cli::Error::Service)
                     },
                 }

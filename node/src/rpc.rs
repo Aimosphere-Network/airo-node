@@ -18,7 +18,7 @@ use airo_dx::rpc::Service as DxService;
 use airo_runtime::{opaque::Block, AccountId, Balance, Hash, Nonce};
 
 /// Extra dependencies for DataExchange.
-pub struct DataExchangeDeps {
+pub struct DxDeps {
     pub service: DxService,
 }
 
@@ -30,8 +30,8 @@ pub struct FullDeps<C, P> {
     pub pool: Arc<P>,
     /// Whether to deny unsafe calls
     pub deny_unsafe: DenyUnsafe,
-    /// DataExchange dependencies
-    pub data_exchange_deps: DataExchangeDeps,
+    /// Dx dependencies
+    pub dx_deps: Option<DxDeps>,
 }
 
 /// Instantiate all full RPC extensions.
@@ -52,12 +52,14 @@ where
     use substrate_frame_rpc_system::{System, SystemApiServer};
 
     let mut module = RpcModule::new(());
-    let FullDeps { client, pool, deny_unsafe, data_exchange_deps } = deps;
+    let FullDeps { client, pool, deny_unsafe, dx_deps } = deps;
 
     module.merge(System::new(client.clone(), pool, deny_unsafe).into_rpc())?;
     module.merge(TransactionPayment::new(client).into_rpc())?;
 
-    module.merge(DataExchange::<Hash>::new(data_exchange_deps.service).into_rpc())?;
+    if let Some(dx_deps) = dx_deps {
+        module.merge(DataExchange::<Hash>::new(dx_deps.service).into_rpc())?;
+    }
 
     // Extend this RPC with a custom API by using the following syntax.
     // `YourRpcStruct` should have a reference to a client, which is needed

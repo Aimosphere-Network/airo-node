@@ -1,5 +1,6 @@
 //! Service and ServiceFactory implementation. Specialized wrapper over substrate service.
 
+use crate::cli::DxCmd;
 use airo_dx::network::{DxConfig, DxNetworkEventStream, DxNetworkService, DxNetworkWorker};
 use airo_runtime::{self, opaque::Block, RuntimeApi};
 use futures::FutureExt;
@@ -138,7 +139,7 @@ pub fn new_full<
     N: sc_network::NetworkBackend<Block, <Block as sp_runtime::traits::Block>::Hash>,
 >(
     config: Configuration,
-    dx_port: Option<u16>,
+    dx: DxCmd,
 ) -> Result<TaskManager, ServiceError> {
     let sc_service::PartialComponents {
         client,
@@ -219,19 +220,18 @@ pub fn new_full<
     let enable_grandpa = !config.disable_grandpa;
     let prometheus_registry = config.prometheus_registry().cloned();
 
-    let (dx_network_worker, dx_network_service) = build_dx_network(
-        client.clone(),
-        &config.network,
-        dx_port.unwrap_or(DEFAULT_DX_PORT),
-        config.base_path.path().to_path_buf(),
-    );
-    task_manager
-        .spawn_essential_handle()
-        .spawn("dx-network", Some("dx"), dx_network_worker.run());
-
-    let rpc_extensions_builder = {
-        let client = client.clone();
-        let pool = transaction_pool.clone();
+    let dx_service = if !dx.no_dx {
+        let (dx_network_worker, dx_network_service) = build_dx_network(
+            client.clone(),
+            &config.network,
+            dx.dx_port.unwrap_or(DEFAULT_DX_PORT),
+            config.base_path.path().to_path_buf(),
+        );
+        task_manager.spawn_essential_handle().spawn(
+            "dx-network",
+            Some("dx"),
+            dx_network_worker.run(),
+        );
 
         let dx_event_stream = dx_network_service.event_stream();
         let (worker, service) = airo_dx::rpc::new_worker_and_service(
@@ -239,13 +239,21 @@ pub fn new_full<
             dx_event_stream,
         );
         task_manager.spawn_handle().spawn("dx-rpc", Some("dx"), worker.run());
+        Some(service)
+    } else {
+        None
+    };
+
+    let rpc_extensions_builder = {
+        let client = client.clone();
+        let pool = transaction_pool.clone();
 
         Box::new(move |deny_unsafe, _| {
             let deps = crate::rpc::FullDeps {
                 client: client.clone(),
                 pool: pool.clone(),
                 deny_unsafe,
-                data_exchange_deps: crate::rpc::DataExchangeDeps { service: service.clone() },
+                dx_deps: dx_service.clone().map(|service| crate::rpc::DxDeps { service }),
             };
             crate::rpc::create_full(deps).map_err(Into::into)
         })

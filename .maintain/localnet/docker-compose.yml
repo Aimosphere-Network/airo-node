@@ -10,6 +10,7 @@ services:
       testing_net:
         ipv4_address: 172.28.1.1
     command:
+#      - "--no-dx"
       - "--node-key"
       - "0000000000000000000000000000000000000000000000000000000000000001"
       - "--base-path"
@@ -41,6 +42,7 @@ services:
       testing_net:
         ipv4_address: 172.28.1.2
     command:
+#      - "--no-dx"
       - "--node-key"
       - "0000000000000000000000000000000000000000000000000000000000000002"
       - "--base-path"
@@ -72,6 +74,7 @@ services:
       testing_net:
         ipv4_address: 172.28.1.3
     command:
+#      - "--no-dx"
       - "--node-key"
       - "0000000000000000000000000000000000000000000000000000000000000003"
       - "--base-path"

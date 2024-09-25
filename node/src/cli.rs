@@ -1,6 +1,17 @@
 use sc_cli::RunCmd;
 
 #[derive(Debug, clap::Parser)]
+pub struct DxCmd {
+    /// Port for the DX network
+    #[arg(long, value_name = "PORT")]
+    pub dx_port: Option<u16>,
+
+    /// Disable DX
+    #[arg(long)]
+    pub no_dx: bool,
+}
+
+#[derive(Debug, clap::Parser)]
 pub struct Cli {
     #[command(subcommand)]
     pub subcommand: Option<Subcommand>,
@@ -8,8 +19,8 @@ pub struct Cli {
     #[clap(flatten)]
     pub run: RunCmd,
 
-    #[arg(long, value_name = "PORT")]
-    pub dx_port: Option<u16>,
+    #[clap(flatten)]
+    pub dx: DxCmd,
 }
 
 #[derive(Debug, clap::Subcommand)]
