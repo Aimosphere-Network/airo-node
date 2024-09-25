@@ -20,11 +20,11 @@ services:
       - "--validator"
       - "--alice"
       - "--bootnodes"
-#      - "/ip4/172.28.1.2/tcp/30333/p2p/12D3KooWHdiAxVd8uMQR1hGWXccidmfCwLqcMpGwR6QcTP6QRMuD"
+      #      - "/ip4/172.28.1.2/tcp/30333/p2p/12D3KooWHdiAxVd8uMQR1hGWXccidmfCwLqcMpGwR6QcTP6QRMuD"
       - "/dns/node-bob/tcp/30333/p2p/12D3KooWHdiAxVd8uMQR1hGWXccidmfCwLqcMpGwR6QcTP6QRMuD"
       - "--unsafe-rpc-external"
-#      - "--log"
-#      - "sub-libp2p=trace"
+      #      - "--log"
+      #      - "sub-libp2p=trace"
       - "--no-telemetry"
       - "--rpc-cors"
       - "all"
@@ -51,14 +51,44 @@ services:
       - "--validator"
       - "--bob"
       - "--bootnodes"
-#      - "/ip4/172.28.1.1/tcp/30333/p2p/12D3KooWEyoppNCUx8Yx66oV9fJnriXwCcXwDDUA2kj6vnc6iDEp"
+      #      - "/ip4/172.28.1.1/tcp/30333/p2p/12D3KooWEyoppNCUx8Yx66oV9fJnriXwCcXwDDUA2kj6vnc6iDEp"
       - "/dns/node-alice/tcp/30333/p2p/12D3KooWEyoppNCUx8Yx66oV9fJnriXwCcXwDDUA2kj6vnc6iDEp"
       - "--no-telemetry"
       - "--rpc-cors"
       - "all"
       - "--unsafe-rpc-external"
-#      - "--log"
-#      - "sub-libp2p=trace"
+      #      - "--log"
+      #      - "sub-libp2p=trace"
+      - "--prometheus-external"
+
+  node-charlie:
+    image: aimosphere/airo
+    ports:
+      - "9947:9944"
+      - "9618:9615"
+    volumes:
+      - ../../target/release/airo:/usr/local/bin/airo
+    networks:
+      testing_net:
+        ipv4_address: 172.28.1.3
+    command:
+      - "--node-key"
+      - "0000000000000000000000000000000000000000000000000000000000000003"
+      - "--base-path"
+      - "/tmp/charlie"
+      - "--chain=local"
+      - "--port"
+      - "30333"
+      - "--validator"
+      - "--charlie"
+      - "--bootnodes"
+      - "/dns/node-alice/tcp/30333/p2p/12D3KooWEyoppNCUx8Yx66oV9fJnriXwCcXwDDUA2kj6vnc6iDEp"
+      - "--no-telemetry"
+      - "--rpc-cors"
+      - "all"
+      - "--unsafe-rpc-external"
+      #      - "--log"
+      #      - "sub-libp2p=trace"
       - "--prometheus-external"
 
 networks:
