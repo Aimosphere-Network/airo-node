@@ -14,6 +14,7 @@ pub use crate::network::{
     worker::{Event as DxEvent, NetworkWorker as DxNetworkWorker},
 };
 
+#[derive(Debug)]
 pub enum ServiceMsg {
     EventStream { sender: Sender<DxEvent> },
     StartProviding { key: RecordKey, data: Vec<u8> },

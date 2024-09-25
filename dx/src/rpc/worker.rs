@@ -83,10 +83,18 @@ where
     async fn handle_dx_event(&mut self, event: DxEvent) {
         match event {
             DxEvent::FoundProviders { key, providers } => {
-                for provider in providers.clone() {
-                    self.network_service.get_data(key.clone(), provider);
+                if providers.is_empty() {
+                    if let Some(senders) = self.pending_lookups.remove(&key) {
+                        for sender in senders {
+                            let _ = sender.send(None);
+                        }
+                    }
+                } else {
+                    for provider in providers.clone() {
+                        self.network_service.get_data(key.clone(), provider);
+                    }
+                    self.lookup_peers.insert(key, providers);
                 }
-                self.lookup_peers.insert(key, providers);
             },
             DxEvent::FoundProvidersFailed { key } => {
                 log::warn!(target: "dx", "👻 Failed to find providers for {:?}", key);

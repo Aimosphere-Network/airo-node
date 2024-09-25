@@ -9,6 +9,8 @@ services:
     networks:
       testing_net:
         ipv4_address: 172.28.1.1
+#    environment:
+#      - RUST_LOG=dx-libp2p=debug
     command:
 #      - "--no-dx"
       - "--node-key"

@@ -10,7 +10,7 @@ use hex::ToHex;
 use libp2p::{
     identity::{ed25519, Keypair},
     kad,
-    kad::{AddProviderError, AddProviderOk, GetProvidersError, GetProvidersOk},
+    kad::{AddProviderError, AddProviderOk, GetProvidersError, GetProvidersOk, QueryId},
     mdns,
     multiaddr::Protocol,
     noise, request_response,
@@ -48,6 +48,7 @@ pub struct NetworkWorker {
     from_service: TracingUnboundedReceiver<ServiceMsg>,
     network: Swarm<Behaviour>,
     event_sender: Vec<Sender<Event>>,
+    pending_request_providers: HashMap<QueryId, (RecordKey, HashSet<PeerId>)>,
     pending_request_file: HashMap<OutboundRequestId, (RecordKey, PeerId)>,
     path: PathBuf, // TODO. Abstract storage.
 }
@@ -103,6 +104,7 @@ impl NetworkWorker {
             from_service,
             network,
             event_sender: Vec::new(),
+            pending_request_providers: HashMap::new(),
             pending_request_file: HashMap::new(),
             path,
         }
@@ -136,6 +138,8 @@ impl NetworkWorker {
     }
 
     async fn handle_worker_message(&mut self, msg: ServiceMsg) {
+        log::debug!(target: "dx-libp2p", "👻 Received message: {:?}", msg);
+
         match msg {
             ServiceMsg::EventStream { sender } => {
                 self.event_sender.push(sender);
@@ -146,7 +150,8 @@ impl NetworkWorker {
                 let _ = self.network.behaviour_mut().kademlia.start_providing(key);
             },
             ServiceMsg::FindFirstProvider { key } => {
-                self.network.behaviour_mut().kademlia.get_providers(key);
+                let query_id = self.network.behaviour_mut().kademlia.get_providers(key.clone());
+                self.pending_request_providers.insert(query_id, (key, HashSet::new()));
             },
             ServiceMsg::GetData { key, peer } => {
                 if peer == self.local_peer_id {
@@ -174,6 +179,8 @@ impl NetworkWorker {
     }
 
     async fn handle_swarm_event(&mut self, event: SwarmEvent<BehaviourEvent>) {
+        log::debug!(target: "dx-libp2p", "👻 Received event: {:?}", event);
+
         match event {
             SwarmEvent::Behaviour(BehaviourEvent::Kademlia(
                 kad::Event::OutboundQueryProgressed {
@@ -203,8 +210,7 @@ impl NetworkWorker {
                 for sender in &self.event_sender {
                     // TODO. Handle errors
                     match result.clone() {
-                        Ok(GetProvidersOk::FoundProviders { key, providers }) => {
-                            let _ = sender.send(Event::FoundProviders { key, providers }).await;
+                        Ok(GetProvidersOk::FoundProviders { providers, .. }) => {
                             // Finish the query. We are only interested in the first result.
                             self.network
                                 .behaviour_mut()
@@ -212,11 +218,24 @@ impl NetworkWorker {
                                 .query_mut(&id)
                                 .expect("The current query exists; qed")
                                 .finish();
+
+                            if let Some((_, peers)) = self.pending_request_providers.get_mut(&id) {
+                                peers.extend(providers)
+                            }
+                        },
+                        Ok(GetProvidersOk::FinishedWithNoAdditionalRecord { .. }) => {
+                            if let Some((key, providers)) =
+                                self.pending_request_providers.remove(&id)
+                            {
+                                log::debug!(target: "dx-libp2p", "👻 Found providers: {:?}", providers);
+                                let _ = sender.send(Event::FoundProviders { key, providers }).await;
+                            }
                         },
                         Err(GetProvidersError::Timeout { key, .. }) => {
+                            self.pending_request_providers.remove(&id);
+                            // TODO. Send providers that have been found.
                             let _ = sender.send(Event::FoundProvidersFailed { key }).await;
                         },
-                        _ => {},
                     }
                 }
             },
