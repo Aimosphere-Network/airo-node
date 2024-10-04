@@ -55,20 +55,6 @@ fn fail_order_zero() {
 }
 
 #[test]
-fn fail_order_default_model_id() {
-    new_test_ext().execute_with(|| {
-        assert_noop!(
-            AiroMarket::order_create(
-                RuntimeOrigin::signed(CONSUMER_1),
-                BoundedVec::try_from("".as_bytes().to_vec()).unwrap(),
-                1
-            ),
-            Error::<Test>::OrderInvalid
-        );
-    });
-}
-
-#[test]
 fn can_bid() {
     new_test_ext().execute_with(|| {
         let order_id = create_order(CONSUMER_1, "model_id", 1);

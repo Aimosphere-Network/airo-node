@@ -25,7 +25,7 @@ impl<T: Config> OrderDetails<T> {
     }
 
     pub fn is_valid(&self) -> bool {
-        self.requests_total > 0 && self.model_id != T::ModelId::default()
+        self.requests_total > 0
     }
 
     pub fn is_owned_by(&self, consumer: &Consumer<T>) -> bool {

@@ -59,7 +59,7 @@ pub mod pallet {
             + FunHoldMutate<Self::AccountId, Reason = Self::RuntimeHoldReason>;
 
         /// Model ID type.
-        type ModelId: Member + Parameter + MaxEncodedLen + Default;
+        type ModelId: Member + Parameter + MaxEncodedLen;
 
         /// Order ID type.
         type OrderId: Member + Parameter + MaxEncodedLen + One + Zero + Default + Copy;

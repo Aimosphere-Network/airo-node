@@ -18,9 +18,10 @@ pub use frame_support::{
 };
 use frame_support::{
     genesis_builder_helper::{build_state, get_preset},
-    traits::VariantCountOf,
+    traits::{tokens::nonfungibles_v2::Inspect, AsEnsureOriginWithArg, VariantCountOf},
 };
 pub use frame_system::Call as SystemCall;
+use frame_system::{EnsureRoot, EnsureSigned};
 pub use pallet_balances::Call as BalancesCall;
 use pallet_grandpa::AuthorityId as GrandpaId;
 pub use pallet_timestamp::Call as TimestampCall;
@@ -34,7 +35,7 @@ use sp_runtime::{
     create_runtime_str, generic, impl_opaque_keys,
     traits::{BlakeTwo256, Block as BlockT, IdentifyAccount, NumberFor, One, Verify},
     transaction_validity::{TransactionSource, TransactionValidity},
-    ApplyExtrinsicResult, BoundedVec, MultiSignature,
+    ApplyExtrinsicResult, MultiSignature,
 };
 pub use sp_runtime::{Perbill, Permill};
 #[cfg(feature = "std")]
@@ -66,8 +67,7 @@ pub type Nonce = u32;
 pub type Hash = sp_core::H256;
 
 /// Model ID.
-// TODO. Allow non-empty, valid utf-8 model IDs only. When done a `Default` trait bound in the Market pallet can be removed.
-pub type ModelId = BoundedVec<u8, ConstU32<128>>;
+pub type ModelId = Hash;
 
 /// Opaque types. These are used by the CLI to instantiate machinery that don't need to know
 /// the specifics of the runtime. They can then be made to be agnostic over specific formats
@@ -249,21 +249,47 @@ impl pallet_sudo::Config for Runtime {
     type WeightInfo = pallet_sudo::weights::SubstrateWeight<Runtime>;
 }
 
-#[cfg(feature = "runtime-benchmarks")]
-pub struct AiroBenchmarkHelper;
-
-#[cfg(feature = "runtime-benchmarks")]
-impl airo_primitives::benchmarking::ModelFactory<ModelId> for AiroBenchmarkHelper {
-    fn get_model_id() -> ModelId {
-        ModelId::try_from(vec![1; 128]).unwrap()
-    }
+parameter_types! {
+    pub const CollectionDeposit: Balance = 100;
+    pub const ItemDeposit: Balance = 1;
+    pub const AssetDeposit: Balance = 100;
+    pub const ApprovalDeposit: Balance = 1;
+    pub const ApprovalsLimit: u32 = 20;
+    pub const MetadataDepositBase: Balance = 10;
+    pub const MetadataDepositPerByte: Balance = 1;
+    pub const MaxTips: u32 = 10;
+    pub const MaxDeadlineDuration: BlockNumber = 12 * 30 * DAYS;
+    pub const MaxAttributesPerCall: u32 = 10;
+    pub Features: pallet_nfts::PalletFeatures = pallet_nfts::PalletFeatures::all_enabled();
 }
 
-#[cfg(feature = "runtime-benchmarks")]
-impl airo_primitives::benchmarking::ContentFactory<Hash> for AiroBenchmarkHelper {
-    fn get_content_id() -> Hash {
-        Hash::repeat_byte(26)
-    }
+impl pallet_nfts::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;
+    type CollectionId = u32;
+    type ItemId = ModelId;
+    type Currency = Balances;
+    type ForceOrigin = EnsureRoot<AccountId>;
+    type CreateOrigin = AsEnsureOriginWithArg<EnsureSigned<AccountId>>;
+    type Locker = ();
+    type CollectionDeposit = CollectionDeposit;
+    type ItemDeposit = ItemDeposit;
+    type MetadataDepositBase = MetadataDepositBase;
+    type AttributeDepositBase = MetadataDepositBase;
+    type DepositPerByte = MetadataDepositPerByte;
+    type StringLimit = ConstU32<256>;
+    type KeyLimit = ConstU32<64>;
+    type ValueLimit = ConstU32<256>;
+    type ApprovalsLimit = ApprovalsLimit;
+    type ItemAttributesApprovalsLimit = ApprovalsLimit;
+    type MaxTips = MaxTips;
+    type MaxDeadlineDuration = MaxDeadlineDuration;
+    type MaxAttributesPerCall = MaxAttributesPerCall;
+    type Features = Features;
+    type OffchainSignature = Signature;
+    type OffchainPublic = <Signature as Verify>::Signer;
+    #[cfg(feature = "runtime-benchmarks")]
+    type Helper = AiroBenchmarkHelper;
+    type WeightInfo = pallet_nfts::weights::SubstrateWeight<Runtime>;
 }
 
 impl pallet_market::Config for Runtime {
@@ -288,6 +314,49 @@ impl pallet_execution::Config for Runtime {
     type ContentId = Hash;
     #[cfg(feature = "runtime-benchmarks")]
     type BenchmarkHelper = AiroBenchmarkHelper;
+}
+
+#[cfg(feature = "runtime-benchmarks")]
+pub struct AiroBenchmarkHelper;
+
+#[cfg(feature = "runtime-benchmarks")]
+impl airo_primitives::benchmarking::ModelFactory<ModelId> for AiroBenchmarkHelper {
+    fn get_model_id() -> ModelId {
+        ModelId::repeat_byte(1)
+    }
+}
+
+#[cfg(feature = "runtime-benchmarks")]
+impl airo_primitives::benchmarking::ContentFactory<Hash> for AiroBenchmarkHelper {
+    fn get_content_id() -> Hash {
+        Hash::repeat_byte(26)
+    }
+}
+
+#[cfg(feature = "runtime-benchmarks")]
+impl pallet_nfts::BenchmarkHelper<u32, ModelId, <Signature as Verify>::Signer, AccountId, Signature>
+    for AiroBenchmarkHelper
+{
+    fn collection(i: u16) -> u32 {
+        i as u32
+    }
+
+    fn item(i: u16) -> ModelId {
+        ModelId::repeat_byte(i as u8)
+    }
+
+    fn signer() -> (<Signature as Verify>::Signer, AccountId) {
+        let public = sp_io::crypto::sr25519_generate(0.into(), None);
+        let account = sp_runtime::MultiSigner::Sr25519(public).into_account();
+        (public.into(), account)
+    }
+
+    fn sign(signer: &<Signature as Verify>::Signer, message: &[u8]) -> Signature {
+        sp_runtime::MultiSignature::Sr25519(
+            sp_io::crypto::sr25519_sign(0.into(), &signer.clone().try_into().unwrap(), message)
+                .unwrap(),
+        )
+    }
 }
 
 // Create the runtime by composing the FRAME pallets that were previously configured.
@@ -329,9 +398,12 @@ mod runtime {
     pub type Sudo = pallet_sudo;
 
     #[runtime::pallet_index(7)]
-    pub type AiroMarket = pallet_market;
+    pub type Nfts = pallet_nfts;
 
     #[runtime::pallet_index(8)]
+    pub type AiroMarket = pallet_market;
+
+    #[runtime::pallet_index(9)]
     pub type AiroExecution = pallet_execution;
 }
 
@@ -382,6 +454,7 @@ mod benches {
         [pallet_balances, Balances]
         [pallet_timestamp, Timestamp]
         [pallet_sudo, Sudo]
+        [pallet_nfts, Nfts]
         [pallet_market, AiroMarket]
         [pallet_execution, AiroExecution]
     );
@@ -552,6 +625,50 @@ impl_runtime_apis! {
         }
         fn query_length_to_fee(length: u32) -> Balance {
             TransactionPayment::length_to_fee(length)
+        }
+    }
+
+    impl pallet_nfts_runtime_api::NftsApi<Block, AccountId, u32, ModelId> for Runtime {
+        fn owner(collection: u32, item: ModelId) -> Option<AccountId> {
+            <Nfts as Inspect<AccountId>>::owner(&collection, &item)
+        }
+
+        fn collection_owner(collection: u32) -> Option<AccountId> {
+            <Nfts as Inspect<AccountId>>::collection_owner(&collection)
+        }
+
+        fn attribute(
+            collection: u32,
+            item: ModelId,
+            key: Vec<u8>,
+        ) -> Option<Vec<u8>> {
+            <Nfts as Inspect<AccountId>>::attribute(&collection, &item, &key)
+        }
+
+        fn custom_attribute(
+            account: AccountId,
+            collection: u32,
+            item: ModelId,
+            key: Vec<u8>,
+        ) -> Option<Vec<u8>> {
+            <Nfts as Inspect<AccountId>>::custom_attribute(
+                &account,
+                &collection,
+                &item,
+                &key,
+            )
+        }
+
+        fn system_attribute(
+            collection: u32,
+            item: Option<ModelId>,
+            key: Vec<u8>,
+        ) -> Option<Vec<u8>> {
+            <Nfts as Inspect<AccountId>>::system_attribute(&collection, item.as_ref(), &key)
+        }
+
+        fn collection_attribute(collection: u32, key: Vec<u8>) -> Option<Vec<u8>> {
+            <Nfts as Inspect<AccountId>>::collection_attribute(&collection, &key)
         }
     }
 
