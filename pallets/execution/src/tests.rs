@@ -1,5 +1,4 @@
 use frame_support::{traits::fungible, *};
-use sp_core::bounded_vec;
 use sp_runtime::TokenError;
 
 use airo_primitives::RequestsUsize;
@@ -8,6 +7,7 @@ use crate::{mock::*, *};
 
 fn create_agreement(
     agreement_id: AgreementId,
+    model_id: ModelId,
     consumer: AccountId,
     provider: AccountId,
     price_per_request: Balance,
@@ -17,7 +17,7 @@ fn create_agreement(
         consumer,
         provider,
         agreement_id,
-        ModelId::default(),
+        model_id,
         price_per_request,
         requests_total,
     ));
@@ -37,7 +37,7 @@ fn create_request(consumer: AccountId, agreement_id: AgreementId) -> RequestsUsi
 fn can_create_agreement() {
     new_test_ext().execute_with(|| {
         let agreement_id = 1;
-        let model_id: ModelId = bounded_vec![1, 2, 3];
+        let model_id: ModelId = BoundedVec::try_from(OWNED_MODEL.as_bytes().to_vec()).unwrap();
         let price_per_request = 100;
         let requests_total = 5;
 
@@ -55,6 +55,7 @@ fn can_create_agreement() {
             PROVIDER_1,
             model_id,
             price_per_request,
+            ROYALTY,
             requests_total,
         );
         assert_eq!(Agreements::<Test>::get(agreement_id), Some(expected_agreement));
@@ -62,14 +63,21 @@ fn can_create_agreement() {
         assert!(ProviderAgreements::<Test>::contains_key(PROVIDER_1, agreement_id));
         assert_eq!(
             <Balances as fungible::Inspect<_>>::balance(&CONSUMER_1),
-            INITIAL_BALANCE - price_per_request * requests_total as Balance
+            INITIAL_BALANCE - (price_per_request + ROYALTY) * requests_total as Balance
         );
         assert_eq!(
             <Balances as fungible::hold::Inspect<_>>::balance_on_hold(
-                &HoldReason::ConsumerPrepayment.into(),
+                &HoldReason::ProviderPayment.into(),
                 &CONSUMER_1
             ),
             price_per_request * requests_total as Balance
+        );
+        assert_eq!(
+            <Balances as fungible::hold::Inspect<_>>::balance_on_hold(
+                &HoldReason::RoyaltyPayment.into(),
+                &CONSUMER_1
+            ),
+            ROYALTY * requests_total as Balance
         );
 
         System::assert_last_event(Event::AgreementCreated { agreement_id }.into());
@@ -97,7 +105,7 @@ fn fail_create_agreement_no_funds() {
 fn can_request() {
     new_test_ext().execute_with(|| {
         let agreement_id = 1;
-        create_agreement(agreement_id, CONSUMER_1, PROVIDER_1, 100, 10);
+        create_agreement(agreement_id, ModelId::default(), CONSUMER_1, PROVIDER_1, 100, 10);
 
         let content_id = ContentId::random();
         assert_ok!(Pallet::<Test>::request_create(
@@ -133,7 +141,7 @@ fn fail_request_missing_agreement() {
 fn fail_request_non_owned_agreement() {
     new_test_ext().execute_with(|| {
         let agreement_id = 1;
-        create_agreement(agreement_id, CONSUMER_1, PROVIDER_1, 100, 10);
+        create_agreement(agreement_id, ModelId::default(), CONSUMER_1, PROVIDER_1, 100, 10);
         assert_noop!(
             Pallet::<Test>::request_create(
                 RuntimeOrigin::signed(CONSUMER_2),
@@ -149,7 +157,7 @@ fn fail_request_non_owned_agreement() {
 fn fail_request_exceed_limit() {
     new_test_ext().execute_with(|| {
         let agreement_id = 1;
-        create_agreement(agreement_id, CONSUMER_1, PROVIDER_1, 100, 2);
+        create_agreement(agreement_id, ModelId::default(), CONSUMER_1, PROVIDER_1, 100, 2);
         create_request(CONSUMER_1, agreement_id);
         create_request(CONSUMER_1, agreement_id);
 
@@ -169,7 +177,14 @@ fn can_respond() {
     new_test_ext().execute_with(|| {
         let agreement_id = 1;
         let price_per_request = 100;
-        create_agreement(agreement_id, CONSUMER_1, PROVIDER_1, price_per_request, 10);
+        create_agreement(
+            agreement_id,
+            ModelId::default(),
+            CONSUMER_1,
+            PROVIDER_1,
+            price_per_request,
+            10,
+        );
         let request_index = create_request(CONSUMER_1, agreement_id);
 
         let content_id = ContentId::random();
@@ -186,6 +201,33 @@ fn can_respond() {
         System::assert_last_event(
             Event::ResponseCreated { agreement_id, request_index, content_id }.into(),
         );
+    });
+}
+
+#[test]
+fn royalty_transferred() {
+    new_test_ext().execute_with(|| {
+        let agreement_id = 1;
+        let price_per_request = 100;
+        create_agreement(
+            agreement_id,
+            BoundedVec::try_from(OWNED_MODEL.as_bytes().to_vec()).unwrap(),
+            CONSUMER_1,
+            PROVIDER_1,
+            price_per_request,
+            10,
+        );
+        let request_index = create_request(CONSUMER_1, agreement_id);
+
+        let content_id = ContentId::random();
+        assert_ok!(Pallet::<Test>::response_create(
+            RuntimeOrigin::signed(PROVIDER_1),
+            agreement_id,
+            request_index,
+            content_id,
+        ));
+
+        assert_eq!(<Balances as fungible::Inspect<_>>::balance(&OWNER), ROYALTY);
     });
 }
 
@@ -208,7 +250,7 @@ fn fail_respond_missing_agreement() {
 fn fail_respond_non_owned_agreement() {
     new_test_ext().execute_with(|| {
         let agreement_id = 1;
-        create_agreement(agreement_id, CONSUMER_1, PROVIDER_1, 100, 10);
+        create_agreement(agreement_id, ModelId::default(), CONSUMER_1, PROVIDER_1, 100, 10);
         let request_index = create_request(CONSUMER_1, agreement_id);
 
         assert_noop!(
@@ -227,7 +269,7 @@ fn fail_respond_non_owned_agreement() {
 fn fail_respond_missing_request() {
     new_test_ext().execute_with(|| {
         let agreement_id = 1;
-        create_agreement(agreement_id, CONSUMER_1, PROVIDER_1, 100, 10);
+        create_agreement(agreement_id, ModelId::default(), CONSUMER_1, PROVIDER_1, 100, 10);
 
         assert_noop!(
             Pallet::<Test>::response_create(
@@ -245,7 +287,7 @@ fn fail_respond_missing_request() {
 fn fail_respond_same_request() {
     new_test_ext().execute_with(|| {
         let agreement_id = 1;
-        create_agreement(agreement_id, CONSUMER_1, PROVIDER_1, 100, 10);
+        create_agreement(agreement_id, ModelId::default(), CONSUMER_1, PROVIDER_1, 100, 10);
         let request_index = create_request(CONSUMER_1, agreement_id);
 
         assert_ok!(Pallet::<Test>::response_create(
