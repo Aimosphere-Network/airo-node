@@ -1,6 +1,7 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 extern crate alloc;
+use airo_primitives::payment::RoyaltyResolver;
 use alloc::{vec, vec::Vec};
 pub use frame_support::{
     construct_runtime, derive_impl, parameter_types,
@@ -24,6 +25,7 @@ pub use frame_system::Call as SystemCall;
 use frame_system::{EnsureRoot, EnsureSigned};
 pub use pallet_balances::Call as BalancesCall;
 use pallet_grandpa::AuthorityId as GrandpaId;
+pub use pallet_market;
 pub use pallet_timestamp::Call as TimestampCall;
 use pallet_transaction_payment::{ConstFeeMultiplier, FungibleAdapter, Multiplier};
 use sp_api::impl_runtime_apis;
@@ -41,8 +43,6 @@ pub use sp_runtime::{Perbill, Permill};
 #[cfg(feature = "std")]
 use sp_version::NativeVersion;
 use sp_version::RuntimeVersion;
-
-pub use pallet_market;
 
 #[cfg(feature = "std")]
 include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
@@ -263,9 +263,11 @@ parameter_types! {
     pub Features: pallet_nfts::PalletFeatures = pallet_nfts::PalletFeatures::all_enabled();
 }
 
+type NftCollectionId = u32;
+
 impl pallet_nfts::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
-    type CollectionId = u32;
+    type CollectionId = NftCollectionId;
     type ItemId = ModelId;
     type Currency = Balances;
     type ForceOrigin = EnsureRoot<AccountId>;
@@ -304,6 +306,22 @@ impl pallet_market::Config for Runtime {
     type BenchmarkHelper = AiroBenchmarkHelper;
 }
 
+const MODELS_COLLECTION_ID: NftCollectionId = 0;
+const ROYALTY: Balance = 1_000;
+
+pub struct NftRoyaltyResolver;
+
+impl RoyaltyResolver for NftRoyaltyResolver {
+    type AccountId = AccountId;
+    type Balance = Balance;
+    type ModelId = ModelId;
+
+    fn get_royalty(model_id: &Self::ModelId) -> Option<(Self::AccountId, Self::Balance)> {
+        <Nfts as Inspect<AccountId>>::owner(&MODELS_COLLECTION_ID, model_id)
+            .map(|owner| (owner, ROYALTY))
+    }
+}
+
 impl pallet_execution::Config for Runtime {
     type WeightInfo = ();
     type RuntimeEvent = RuntimeEvent;
@@ -312,6 +330,7 @@ impl pallet_execution::Config for Runtime {
     type AgreementId = u32;
     type ModelId = ModelId;
     type ContentId = Hash;
+    type RoyaltyResolver = NftRoyaltyResolver;
     #[cfg(feature = "runtime-benchmarks")]
     type BenchmarkHelper = AiroBenchmarkHelper;
 }

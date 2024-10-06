@@ -4,3 +4,4 @@ pub type RequestsUsize = u32;
 
 pub mod agreement;
 pub mod benchmarking;
+pub mod payment;

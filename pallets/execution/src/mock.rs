@@ -1,15 +1,16 @@
+use crate as pallet_execution;
+use airo_primitives::payment::RoyaltyResolver;
 use frame_support::{
     derive_impl,
     traits::{ConstU16, ConstU32, ConstU64},
     BoundedVec,
 };
+use sp_core::hexdisplay::AsBytesRef;
 use sp_core::H256;
 use sp_runtime::{
     traits::{BlakeTwo256, IdentityLookup},
     BuildStorage,
 };
-
-use crate as pallet_execution;
 
 type Block = frame_system::mocking::MockBlock<Test>;
 pub type AccountId = u64;
@@ -88,6 +89,22 @@ impl crate::benchmarking::ContentFactory<ContentId> for AiroExecutionBenchmarkHe
     }
 }
 
+pub struct TestRoyaltyResolver {}
+
+impl RoyaltyResolver for TestRoyaltyResolver {
+    type AccountId = AccountId;
+    type Balance = Balance;
+    type ModelId = ModelId;
+
+    fn get_royalty(model_id: &ModelId) -> Option<(AccountId, Balance)> {
+        if model_id.as_bytes_ref() == OWNED_MODEL.as_bytes() {
+            Some((OWNER, ROYALTY))
+        } else {
+            None
+        }
+    }
+}
+
 impl pallet_execution::Config for Test {
     type WeightInfo = ();
     type RuntimeEvent = RuntimeEvent;
@@ -96,16 +113,20 @@ impl pallet_execution::Config for Test {
     type AgreementId = AgreementId;
     type ModelId = ModelId;
     type ContentId = ContentId;
+    type RoyaltyResolver = TestRoyaltyResolver;
     #[cfg(feature = "runtime-benchmarks")]
     type BenchmarkHelper = AiroExecutionBenchmarkHelper;
 }
 
 pub const INITIAL_BALANCE: Balance = 1_000_000_000;
+pub const ROYALTY: Balance = 100;
 pub const CONSUMER_NO_BALANCE: AccountId = 0;
 pub const CONSUMER_1: AccountId = 1;
 pub const CONSUMER_2: AccountId = 2;
 pub const PROVIDER_1: AccountId = 11;
 pub const PROVIDER_2: AccountId = 12;
+pub const OWNER: AccountId = 99;
+pub const OWNED_MODEL: &str = "owned-model";
 
 // Build genesis storage according to the mock runtime.
 pub fn new_test_ext() -> sp_io::TestExternalities {

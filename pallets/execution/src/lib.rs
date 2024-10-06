@@ -3,15 +3,14 @@
 // We make sure this pallet uses `no_std` for compiling to Wasm.
 #![cfg_attr(not(feature = "std"), no_std)]
 
+use airo_primitives::{agreement::AgreementManagement, payment::RoyaltyResolver, RequestsUsize};
 use frame_support::{
     pallet_prelude::*,
     traits::fungible::{hold::Mutate as FunHoldMutate, Inspect as FunInspect, Mutate as FunMutate},
 };
 use frame_system::pallet_prelude::*;
-use sp_runtime::Saturating;
-
-use airo_primitives::{agreement::AgreementManagement, RequestsUsize};
 pub use pallet::*;
+use sp_runtime::{traits::Zero, Saturating};
 use storage::*;
 use types::*;
 pub use weights::*;
@@ -67,6 +66,13 @@ pub mod pallet {
         /// Content ID type.
         type ContentId: Member + Parameter + MaxEncodedLen;
 
+        /// Used to find royalty payment information for a model.
+        type RoyaltyResolver: RoyaltyResolver<
+            AccountId = Self::AccountId,
+            Balance = BalanceOf<Self>,
+            ModelId = Self::ModelId,
+        >;
+
         #[cfg(feature = "runtime-benchmarks")]
         type BenchmarkHelper: benchmarking::ModelFactory<Self::ModelId>
             + benchmarking::ContentFactory<Self::ContentId>;
@@ -115,8 +121,10 @@ pub mod pallet {
     /// A reason for the Execution pallet placing a hold on funds.
     #[pallet::composite_enum]
     pub enum HoldReason {
-        /// Consumer's prepayment.
-        ConsumerPrepayment,
+        /// Consumer's payment to a provider.
+        ProviderPayment,
+        /// Royalty payment.
+        RoyaltyPayment,
     }
 
     /// Events.
@@ -211,7 +219,7 @@ pub mod pallet {
                 Error::<T>::ResponseAlreadyExists
             );
 
-            let _ = agreement.transfer_payment()?;
+            agreement.transfer_payments()?;
             Responses::<T>::insert(agreement_id, request_index, content_id.clone());
 
             Self::deposit_event(Event::<T>::ResponseCreated {
@@ -239,8 +247,18 @@ impl<T: Config> AgreementManagement for Pallet<T> {
         price_per_request: Self::Balance,
         requests_total: RequestsUsize,
     ) -> DispatchResult {
-        let agreement =
-            AgreementDetails::new(consumer, provider, model_id, price_per_request, requests_total);
+        let royalty_per_request = T::RoyaltyResolver::get_royalty(&model_id)
+            .map(|(_, royalty)| royalty)
+            .unwrap_or(Self::Balance::zero());
+
+        let agreement = AgreementDetails::new(
+            consumer,
+            provider,
+            model_id,
+            price_per_request,
+            royalty_per_request,
+            requests_total,
+        );
         agreement.hold_consumer_prepayment()?;
         Agreement::<T>::insert(order_id, agreement);
 
