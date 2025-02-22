@@ -26,7 +26,7 @@ futures = { workspace = true, features = ["thread-pool"] }
 jsonrpsee = { workspace = true, features = ["client-core", "macros", "server"] }
 
 sp-core = { workspace = true, default-features = true }
-sc-network = { workspace = true }
+sc-network = { workspace = true, default-features = true}
 sp-runtime = { workspace = true, default-features = true }
 sc-telemetry = { workspace = true }
 sc-utils = { workspace = true }

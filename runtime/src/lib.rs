@@ -1,5 +1,10 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
+// pub mod apis;
+// #[cfg(feature = "runtime-benchmarks")]
+// mod benchmarks;
+// pub mod configs;
+
 extern crate alloc;
 use airo_primitives::payment::RoyaltyResolver;
 use alloc::{vec, vec::Vec};
@@ -34,7 +39,7 @@ use sp_core::{crypto::KeyTypeId, OpaqueMetadata};
 #[cfg(any(feature = "std", test))]
 pub use sp_runtime::BuildStorage;
 use sp_runtime::{
-    create_runtime_str, generic, impl_opaque_keys,
+    generic, impl_opaque_keys,
     traits::{BlakeTwo256, Block as BlockT, IdentifyAccount, NumberFor, One, Verify},
     transaction_validity::{TransactionSource, TransactionValidity},
     ApplyExtrinsicResult, MultiSignature,
@@ -97,8 +102,8 @@ pub mod opaque {
 // https://docs.substrate.io/main-docs/build/upgrade#runtime-versioning
 #[sp_version::runtime_version]
 pub const VERSION: RuntimeVersion = RuntimeVersion {
-    spec_name: create_runtime_str!("airo-runtime"),
-    impl_name: create_runtime_str!("airo-runtime"),
+    spec_name: alloc::borrow::Cow::Borrowed("airo-runtime"),
+    impl_name: alloc::borrow::Cow::Borrowed("airo-runtime"),
     authoring_version: 1,
     // The version of the runtime specification. A full node will not attempt to use its native
     //   runtime in substitute for the on-chain Wasm runtime unless all of `spec_name`,
@@ -109,7 +114,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     impl_version: 1,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 1,
-    state_version: 1,
+    system_version: 1,
 };
 
 /// This determines the average expected block time that we are targeting.
@@ -228,6 +233,7 @@ impl pallet_balances::Config for Runtime {
     type MaxLocks = ConstU32<50>;
     type MaxReserves = ();
     type MaxFreezes = VariantCountOf<RuntimeFreezeReason>;
+    type DoneSlashHandler = ();
 }
 
 parameter_types! {
@@ -241,6 +247,7 @@ impl pallet_transaction_payment::Config for Runtime {
     type LengthToFee = IdentityFee<Balance>;
     type FeeMultiplierUpdate = ConstFeeMultiplier<FeeMultiplier>;
     type OperationalFeeMultiplier = ConstU8<5>;
+    type WeightInfo = pallet_transaction_payment::weights::SubstrateWeight<Runtime>;
 }
 
 impl pallet_sudo::Config for Runtime {

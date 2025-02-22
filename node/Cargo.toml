@@ -18,48 +18,51 @@ workspace = true
 targets = ["x86_64-unknown-linux-gnu"]
 
 [dependencies]
-clap = { version = "4.5", features = ["derive"] }
-serde_json = "1.0"
-futures = { workspace = true, features = ["thread-pool"] }
-jsonrpsee = { workspace = true, features = ["server"] }
+clap = { features = ["derive"], workspace = true }
+futures = { features = ["thread-pool"], workspace = true }
+serde_json = { workspace = true, default-features = true }
+jsonrpsee = { features = ["server"], workspace = true }
 
-# substrate client
-sc-cli = { workspace = true }
-sp-core = { workspace = true, default-features = true }
-sc-executor = { workspace = true }
-sc-network = { workspace = true }
-sc-service = { workspace = true }
-sc-telemetry = { workspace = true }
-sc-transaction-pool = { workspace = true }
-sc-transaction-pool-api = { workspace = true }
-sc-offchain = { workspace = true }
-sc-consensus-aura = { workspace = true }
-sp-consensus-aura = { workspace = true, default-features = true }
-sc-consensus = { workspace = true }
-sc-consensus-grandpa = { workspace = true }
-sp-consensus-grandpa = { workspace = true, default-features = true }
-sc-client-api = { workspace = true }
-sc-rpc-api = { workspace = true }
-sc-basic-authorship = { workspace = true }
+# Substrate client
+sc-basic-authorship = { workspace = true, default-features = true }
+sc-cli = { workspace = true, default-features = true }
+sc-client-api = { workspace = true, default-features = true }
+sc-consensus = { workspace = true, default-features = true }
+sc-consensus-aura = { workspace = true, default-features = true }
+sc-consensus-grandpa = { workspace = true, default-features = true }
+sc-executor = { workspace = true, default-features = true }
+sc-network = { workspace = true, default-features = true }
+sc-offchain = { workspace = true, default-features = true }
+sc-service = { workspace = true, default-features = true }
+sc-telemetry = { workspace = true, default-features = true }
+sc-transaction-pool = { workspace = true, default-features = true }
+sc-transaction-pool-api = { workspace = true, default-features = true }
 
-# substrate primitives
-sp-runtime = { workspace = true, default-features = true }
-sp-io = { workspace = true }
-sp-timestamp = { workspace = true }
-sp-inherents = { workspace = true, default-features = true }
-sp-keyring = { workspace = true }
+# Substrate primitives
 sp-api = { workspace = true, default-features = true }
-sp-blockchain = { workspace = true }
 sp-block-builder = { workspace = true, default-features = true }
+sp-blockchain = { workspace = true, default-features = true }
+sp-consensus-aura = { workspace = true, default-features = true }
+sp-consensus-grandpa = { workspace = true, default-features = true }
+sp-core = { workspace = true, default-features = true }
+sp-genesis-builder = { workspace = true, default-features = true }
+sp-inherents = { workspace = true, default-features = true }
+sp-runtime = { workspace = true, default-features = true }
+sp-io = { workspace = true, default-features = true }
+sp-keyring = { workspace = true, default-features = true }
+sp-timestamp = { workspace = true, default-features = true }
 
-# frame and pallets
+# Frame and pallets
 frame-system = { workspace = true, default-features = true }
-pallet-transaction-payment = { workspace = true }
-pallet-transaction-payment-rpc = { workspace = true }
-substrate-frame-rpc-system = { workspace = true }
+frame-metadata-hash-extension = { workspace = true, default-features = true }
+pallet-transaction-payment = { workspace = true, default-features = true }
 
-# These dependencies are used for runtime benchmarking
-frame-benchmarking-cli = { workspace = true }
+# RPC related
+pallet-transaction-payment-rpc = { workspace = true, default-features = true }
+substrate-frame-rpc-system = { workspace = true, default-features = true }
+
+# Runtime benchmarking
+frame-benchmarking-cli = { workspace = true, default-features = true }
 
 # Local Dependencies
 airo-runtime = { path = "../runtime" }
@@ -69,11 +72,13 @@ airo-dx = { path = "../dx" }
 substrate-build-script-utils = { workspace = true }
 
 [features]
-default = []
+default = ["std"]
+std = ["airo-runtime/std"]
 # Dependencies that are only required if runtime benchmarking should be built.
 runtime-benchmarks = [
     "frame-benchmarking-cli/runtime-benchmarks",
     "frame-system/runtime-benchmarks",
+    "pallet-transaction-payment/runtime-benchmarks",
     "sc-service/runtime-benchmarks",
     "airo-runtime/runtime-benchmarks",
     "sp-runtime/runtime-benchmarks",
