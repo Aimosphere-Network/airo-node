@@ -72,6 +72,7 @@ impl pallet_balances::Config for Test {
     type MaxLocks = ();
     type MaxReserves = ();
     type MaxFreezes = ();
+    type DoneSlashHandler = ();
 }
 
 #[cfg(feature = "runtime-benchmarks")]
